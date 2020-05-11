@@ -2,9 +2,8 @@
 <b-card-group class="text-warning">
   <b-card header-tag="header" footer-tag="footer">
     <b-card-text class="d-flex justify-content-center" v-if="result.opcode.startsWith('eth-')">
-      <p v-if="result.opcode === 'eth-payment-confirmed'"></p>
       <p v-html="result.message"></p>
-      <p><a :href="etherScanUrl">view transaction on etherscan.</a></p>
+      <p v-if="result.opcode === 'eth-payment-confirmed'"><a :href="etherScanUrl">view transaction on etherscan.</a></p>
     </b-card-text>
   </b-card>
 </b-card-group>
