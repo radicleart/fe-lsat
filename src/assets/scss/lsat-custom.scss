@@ -1,0 +1,44 @@
+@import 'my_variables.scss';
+@import 'node_modules/bootstrap/scss/bootstrap';
+
+body {
+  margin: 0;
+  font-weight: 300;
+  background-color: #232323;
+}
+.card-group {
+  margin: 10px 10px 10px 10px;
+  border: 1pt solid #232323;
+  border-radius: 15px;
+ }
+.card {
+  background-color: #212121 !important;
+  border: none;
+}
+.card-body {
+  padding: 10px;
+}
+
+.cd-input {
+  padding: 5px;
+  border: none;
+  border-radius: 10px;
+  text-align: center;
+  width: 60px;
+}
+.rd-input {
+  margin-left: 5px;
+  background-color: #696969;
+  padding: 5px;
+  border: none;
+  border-radius: 10px;
+  text-align: center;
+  width: 130px;
+}
+.total-amount-fiat {
+  width: 80px;
+}
+.free-spin {
+  font-weight: 700;
+  /*color: #0277bd;*/
+}

@@ -1,35 +1,86 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
-import contentStore from './contentStore'
-import axios from 'axios'
-import axiosHelper from './axiosHelper'
 import lsatHelper from './lsatHelper'
-import moment from 'moment'
+import ethereumStore from './ethereumStore'
 
 Vue.use(Vuex)
 
+const getAmountSat = function (amountBtc) {
+  try {
+    const precision = 100000000
+    if (typeof amountBtc === 'string') {
+      amountBtc = Number(amountBtc)
+    }
+    return Math.round(amountBtc * precision)
+  } catch {
+    return 0
+  }
+}
+const setCurrentRate = function (state, value) {
+  const rates = state.rates
+  const ethToBtc = state.ethToBtc
+  const amountBtc = value.amountFiat / rates[value.fiatCurrency]['15m']
+  const precision = 100000000
+  value.amountBtc = Math.round(amountBtc * precision) / 100000000
+  value.amountSat = getAmountSat(amountBtc)
+  value.amountEth = Math.round(amountBtc * ethToBtc.rate * precision) / 100000000
+  return value
+}
+
 export default new Vuex.Store({
   modules: {
-    contentStore: contentStore
+    ethereumStore: ethereumStore
   },
   state: {
+    content: {
+      homepage: null,
+      navigation: null,
+      products: null,
+      pages: null
+    },
+    configuration: null,
+    rates: null,
+    ethToBtc: null,
+    addSettledInvoice: null,
     keycloak: {
       name: 'auth-handler'
     },
     tempUserId: false,
-    products: [],
-    lsatProduct: null
+    products: []
   },
   getters: {
-    getKeycloak: state => {
-      return state.keycloak
+    getConfiguration: state => {
+      return state.configuration
     },
-    getOrders: state => {
-      return state.keycloak
+    getBitcoinAddress: state => {
+      return localStorage.getItem('402-btca-' + state.configuration.productId)
     },
-    getLsatProduct: state => productId => {
-      const lsatProduct = JSON.parse(localStorage.getItem('402-' + productId))
-      return lsatProduct
+    getPurchaseOrder: state => {
+      const purchaseOrder = JSON.parse(localStorage.getItem('402-' + state.configuration.productId))
+      return purchaseOrder
+    },
+    getLsat: state => {
+      const lsat = JSON.parse(localStorage.getItem('402-lsat-' + state.configuration.productId))
+      return lsat
+    },
+    getLsatExpired: state => {
+      return lsatHelper.lsatExpired(state.configuration.productId)
+    },
+    getLsatDuration: state => {
+      return lsatHelper.lsatDuration(state.configuration.productId)
+    },
+    getValidLsat: state => {
+      let lsat = JSON.parse(localStorage.getItem('402-lsat-' + state.configuration.productId))
+      const expired = lsatHelper.lsatExpired(state.configuration.productId)
+      if (expired) {
+        localStorage.removeItem('402-lsat-' + state.configuration.productId)
+        lsat = null
+      }
+      return lsat
+    },
+    getToken: state => productId => {
+      const token = localStorage.getItem('402-token-' + productId)
+      return token
     },
     getTempUserId: state => {
       if (state.tempUserId) {
@@ -47,68 +98,59 @@ export default new Vuex.Store({
       }
       state.tempUserId = true
     },
-    addProduct (state, o) {
-      state.products.push(o)
+    addSettledInvoice (state, o) {
+      state.addSettledInvoice = o
     },
-    addLsat (state, o) {
-      state.lsatProduct = o
+    addRates (state, o) {
+      state.rates = o
+    },
+    addEthToBtc (state, o) {
+      state.ethToBtc = o
+    },
+    addConfiguration (state, configuration) {
+      state.configuration = configuration
     }
   },
   actions: {
-    placeOrder ({ commit, state }, product) {
+    initialiseApp ({ state, commit }, configuration) {
       return new Promise((resolve, reject) => {
-        const lsatProduct = JSON.parse(localStorage.getItem('402-' + product.productId))
-        if (lsatProduct && lsatProduct.lsat) {
-          const now = moment().valueOf()
-          const expired = now > lsatProduct.lsat.timeCreated + 3600000
-          if (!expired) {
-            resolve(lsatProduct)
-            return
-          }
-        }
-        // let request = axiosHelper.postParams('/buy-now', product)
-        // request.headers['Authorization'] = 'LSAT ' + macaroon + ":" + preimage
-        axios(axiosHelper.postParams('/assets/buy-now', product)).then(response => {
-          // commit('addProduct', response.data)
-          // resolve(response.data)
-          reject(new Error({ error: 'Expected a 402 response - challenge to pay.' }))
-        })
-          .catch((error) => {
-            if (error.response.status === 402) {
-              const lsat = lsatHelper.storeLsat(error.response, lsatProduct.productId)
-              product.lsat = lsat
-              resolve(product)
+        lsatHelper.fetchRates('/lsat/v1/rates').then(() => {
+          configuration.value = setCurrentRate(state, configuration.value)
+          commit('addConfiguration', configuration)
+          lsatHelper.checkPayment(configuration.productId).then((token) => {
+            if (token) {
+              // request the resource with the valid token
+              lsatHelper.challenge(configuration).then((resource) => {
+                resolve({ tokenAcquired: true, resource: resource })
+              })
             } else {
-              console.log('Problem calling /buy-now ', error)
-              reject(new Error({ error: error }))
+              // if not perform the payment challenge...
+              lsatHelper.challenge(configuration).then((resource) => {
+                commit('addConfiguration', configuration)
+                resolve({ tokenAcquired: false, resource: resource })
+              })
             }
           })
-      })
-    },
-    collectOrder ({ commit }) {
-      return new Promise((resolve, reject) => {
-        commit('addOrder', 'lsat')
-        resolve('lsat')
-      })
-    },
-    lookupInvoice ({ commit }, lsatProduct) {
-      return new Promise((resolve, reject) => {
-        axios(axiosHelper.postParams('/lsat/v1/invoice/' + lsatProduct.lsat.paymentHash)).then(response => {
-          if (response && response.data) {
-            const invoice = response.data
-            if (invoice.settleDate > 0) {
-              const token = lsatHelper.storeToken(invoice.preimage, lsatProduct.productId)
-              commit('token', token)
-              resolve(token)
-            }
-          }
         })
       })
+    },
+    fetchRates ({ state, commit }) {
+      const pr = lsatHelper.fetchRates('/lsat/v1/rates')
+      const config = state.configuration
+      config.value = setCurrentRate(state, config.value)
+      commit('addConfiguration', config)
+      return pr
+    },
+    startListening ({ state, commit }) {
+      const lsat = JSON.parse(localStorage.getItem('402-lsat-' + state.configuration.productId))
+      lsatHelper.startListening(lsat.paymentHash)
+    },
+    stopListening ({ commit }) {
+      lsatHelper.stopListening()
     },
     storePreimage ({ commit }, response) {
       return new Promise((resolve, reject) => {
         const token = lsatHelper.storeToken(response.settledInvoice.preimage, response.productId)
-        commit('token', token)
         resolve(token)
       })
     }

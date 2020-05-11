@@ -1,41 +1,35 @@
 <template>
-  <div class="home" v-if="product">
-    <p><img width="50px" :src="product.data.productimage.url" alt="image"/></p>
-    <h4>{{product.assetHash}}</h4>
-    <div class="d-flex justify-content-between">
-      <h6>{{product.purchaseDate}}</h6>
-      <h6>£ {{product.amountBtc}}</h6>
-    </div>
-    <div class="d-flex justify-content-center">
-      <h6><b-button class="bg-danger" @click="$emit('openPlaceOrder', product)">Buy Now</b-button></h6>
-    </div>
-    <p>{{product.data.summary[0].text}}</p>
-    <p>{{product.data.description[0].text}}</p>
-    <p>{{response}}</p>
+<div class="container" v-if="product">
+  <div class="d-flex justify-content-center">
+      <h2>Valid LSAT Token</h2>
+      <h2>{{product.assetHash}}</h2>
   </div>
+  <div class="d-flex justify-content-center" v-if="productOrder">
+  </div>
+</div>
 </template>
 
 <script>
-// @ is an alias to /src
-
 export default {
   name: 'Token',
-  props: ['product'],
   components: {
   },
+  props: ['token', 'product'],
   data () {
     return {
-      response: null
     }
   },
+  mounted () {
+    this.productId = this.$route.params.productId
+  },
   methods: {
+  },
+  computed: {
   }
 }
 </script>
 <style lang="scss">
 @import "@/assets/scss/custom.scss";
-@import '../../../node_modules/bootstrap/dist/css/bootstrap.min.css';
-@import '../../../node_modules/bootstrap-vue/dist/bootstrap-vue.css';
 
 $bg-classroom: #232323;
 

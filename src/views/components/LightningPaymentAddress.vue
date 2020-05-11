@@ -1,9 +1,5 @@
 <template>
-<div class="d-flex flex-column align-items-center">
-  <countdown @clockReset="clockReset" :timeout="timeout"/>
-  <div class="d-flex justify-content-center">
-    <span><small>Invoice Expires {{created()}}</small></span>
-  </div>
+<div class="mt-3 d-flex flex-column align-items-center">
   <b-tabs content-class="mt-3" class="text-center" style="width: 100%">
     <b-tab title="Make Payment" active>
       <div>
@@ -51,34 +47,26 @@
       </div>
     </b-tab>
   </b-tabs>
-
 </div>
 </template>
 
 <script>
 import QRCode from 'qrcode'
 import Vue from 'vue'
-import Countdown from './Countdown'
-import SockJS from 'sockjs-client'
-import Stomp from '@stomp/stompjs'
 import axios from 'axios'
-import moment from 'moment'
+import { LSAT_CONSTANTS } from '@/lsat-constants'
 
 const API_PATH = process.env.VUE_APP_RADICLE_API
-let stompClient = null
-let socket = null
 // noinspection JSUnusedGlobalSymbols
 export default {
   name: 'LightningPaymentAddress',
   components: {
-    Countdown
   },
-  props: ['lsatProduct'],
+  props: ['value'],
   data () {
     return {
       showChannel: false,
       token: null,
-      timeout: { hours: 1, minutes: 0, seconds: 0 },
       info: null,
       channel: null,
       pubkeys: null,
@@ -86,66 +74,23 @@ export default {
     }
   },
   beforeDestroy () {
-    stompClient.disconnect()
+    this.$store.dispatch('stopListening')
   },
   mounted () {
     Vue.nextTick(function () {
       this.addQrCode()
     }, this)
-    const $self = this
-    socket = new SockJS(API_PATH + '/lsat/ws1/mynews')
-    this.$store.dispatch('lookupInvoice', this.lsatProduct).then((lsatProduct) => {
-      // this.$emit('openOrder', lsatProduct)
-    })
-    stompClient = Stomp.over(socket)
-    stompClient.connect(
-      {},
-      function () {
-        // const MYKEY = 'getTempUserId' // trick lint!
-        // const tuid = this.$store.getters[MYKEY]
-        stompClient.subscribe('/queue/mynews-' + $self.lsatProduct.lsat.paymentHash, function (response) {
-          const settledInvoice = JSON.parse(response.body)
-          $self.$store.dispatch('storePreimage', { productId: $self.lsatProduct.productId, settledInvoice: settledInvoice }).then((token) => {
-            $self.$emit('storedPreimage', $self.lsatProduct.productId)
-          })
-        })
-        stompClient.subscribe('/queue/mynews-' + 'rates', function (response) {
-          const rates = JSON.parse(response.body)
-          $self.rates = rates
-        })
-      },
-      function (error) {
-        console.log(error)
-      }
-    )
     this.fetchInfo()
     this.peerAddress = '178.79.138.62:10011'
-    if (location.href.indexOf('localhost') > -1) {
+    if (location.href.indexOf('local') > -1) {
       this.peerAddress = 'localhost:10011'
-    }
-    // this.fetchPeerInfo()
-    // this.fetchPubkeys()
-  },
-  computed: {
-    paymentRequest () {
-      return this.lsatProduct.lsat.invoice
-    },
-    paymentAmount () {
-      if (this.lsatProduct.lsat && this.lsatProduct.lsat.invoiceAmount) {
-        const amtBtc = this.lsatProduct.lsat.invoiceAmount / 100000000
-        return this.lsatProduct.lsat.invoiceAmount + ' satoshis ( ' + amtBtc + ' btc)'
-      }
-      return '??'
     }
   },
   methods: {
-    created () {
-      var created = this.lsatProduct.lsat.timeCreated
-      return moment(created).format('YYYY-MM-DD HH:mm:SS')
-    },
     addQrCode () {
       var element = this.$refs.lndQrcode
-      const paymentUri = 'lightning:' + this.lsatProduct.lsat.invoice
+      const lsat = this.$store.getters[LSAT_CONSTANTS.KEY_LSAT]
+      const paymentUri = 'lightning:' + lsat.invoice
       QRCode.toCanvas(element, paymentUri, { errorCorrectionLevel: 'H' },
         function (error) {
           if (error) console.error(error)
@@ -176,7 +121,6 @@ export default {
         .catch((error) => {
           console.log(error)
         })
-        // lightningState.peerAddress = "178.79.138.62:10011";
     },
     fetchPeerInfo () {
       axios({
@@ -206,9 +150,6 @@ export default {
           console.log(error)
         })
     },
-    clockReset () {
-      this.$store.dispatch('conversionStore/fetchConversionData')
-    },
     copyAmount () {
       // var copyText = document.getElementById('paymentAmountBtc')
       var copyText = this.$refs.paymentAmountBtc
@@ -229,6 +170,24 @@ export default {
       copyText.select()
       document.execCommand('copy')
       this.$notify({ type: 'success', title: 'Copied Channel Uri', text: 'Copied the channel uri to clipboard: ' + copyText.value })
+    }
+  },
+  computed: {
+    configuration () {
+      const configuration = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
+      return configuration
+    },
+    paymentRequest () {
+      const lsat = this.$store.getters[LSAT_CONSTANTS.KEY_LSAT]
+      return lsat.invoice
+    },
+    paymentAmount () {
+      const lsat = this.$store.getters[LSAT_CONSTANTS.KEY_LSAT]
+      if (lsat && lsat.invoiceAmount) {
+        const amtBtc = lsat.invoiceAmount / 100000000
+        return lsat.invoiceAmount + ' satoshis ( ' + amtBtc + ' btc)'
+      }
+      return '??'
     }
   }
 }

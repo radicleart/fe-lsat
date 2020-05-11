@@ -1,4 +1,4 @@
-# fe-assets
+# fe-lsat
 
 ## Project setup
 
