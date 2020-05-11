@@ -59,7 +59,7 @@ export default {
           sec = '0' + sec
         }
         $self.countdown = min + ':' + sec
-        if (min === 0 && sec === 0) {
+        if (min <= 0 && sec <= 0) {
           $self.$emit('clockReset')
           // $self.timeout.seconds += 2
           duration = moment.duration($self.timeout)

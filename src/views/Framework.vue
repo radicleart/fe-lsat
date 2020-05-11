@@ -21,17 +21,20 @@
     </b-card-text>
     <b-card-text>
       <div class="text-center">
-        <countdown class="mt-3" v-if="timeout" @clockReset="clockReset" :timeout="timeout"/>
+        <div v-if="expired" class="my-5 py-5">
+          Timeout - <a href="#" @click.prevent="evPaymentExpired">please start again</a>
+        </div>
+        <countdown v-else class="mt-3" @clockReset="clockReset" :timeout="timeout"/>
       </div>
       <div class="text-center mb-3" v-if="showExpiry">
         <span><small>{{configuration.value.amountFiat}} {{configuration.value.fiatCurrency}}</small></span>
         <span><small>Expires {{created()}}</small></span>
       </div>
     </b-card-text>
-    <div v-if="expired">
-      Invoice has expired - <a href="#" @click.prevent="evPaymentExpired">please start again</a>
-    </div>
-    <b-card-text>
+    <b-card-text v-if="expired">
+      <div class="text-center" stle="height: 100vh;"></div>
+    </b-card-text>
+    <b-card-text v-else>
       <div class="container">
         <div class="d-flex justify-content-center">
           <lightning-payment-address v-if="paymentOption === 'lightning'"/>
@@ -68,7 +71,7 @@ export default {
     return {
       paymentOption: 'lightning',
       expired: false,
-      timeout: null, // { hours: 1, minutes: 0, seconds: 0 },
+      timeout: { hours: 0, minutes: 1, seconds: 0 },
       showExpiry: false,
       options: [
         { text: 'Ether', value: 'ethereum' },
@@ -83,7 +86,7 @@ export default {
     if (expired) {
       this.expired = true
     }
-    this.timeout = this.$store.getters[LSAT_CONSTANTS.KEY_LSAT_DURATION]
+    this.timeout = { hours: 0, minutes: 1, seconds: 0 } // this.$store.getters[LSAT_CONSTANTS.KEY_LSAT_DURATION]
   },
   methods: {
     paymentEvent: function (data) {
@@ -100,8 +103,11 @@ export default {
       return moment(created).format('YYYY-MM-DD HH:mm')
     },
     evPaymentExpired () {
-      const lsat = this.$store.getters[LSAT_CONSTANTS.KEY_LSAT]
-      this.$emit('paymentEvent', { opcode: 'payment-expired', productId: this.productId, lsat: lsat })
+      const configuration = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
+      this.$store.dispatch('initialiseApp', configuration).then((resource) => {
+        this.timeout = this.$store.getters[LSAT_CONSTANTS.KEY_LSAT_DURATION]
+        this.expired = false
+      })
     }
   },
   computed: {
