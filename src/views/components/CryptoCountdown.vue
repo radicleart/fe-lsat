@@ -1,24 +1,40 @@
 <template>
-  <div class="mb-3 d-flex justify-content-center">
-    <span>{{currentCountdown}}</span>
-  </div>
+  <b-card-text>
+    <div v-if="expired" class="rd-text my-5 py-5 text-center">
+      Timeout - <a href="#" @click.prevent="evPaymentExpired">please start again</a>
+    </div>
+    <div v-else>
+      <div>
+        <small>{{currentCountdown}}</small>
+      </div>
+      <div v-if="showExpires">Expires {{expires()}}</div>
+    </div>
+  </b-card-text>
 </template>
 
 <script>
 import moment from 'moment'
+import { LSAT_CONSTANTS } from '@/lsat-constants'
 
 // noinspection JSUnusedGlobalSymbols
 export default {
-  name: 'Countdown',
+  name: 'CryptoCountdown',
   components: {
   },
-  props: ['timeout'],
   data () {
     return {
-      countdown: null
+      countdown: null,
+      showExpires: false,
+      expired: false,
+      timeout: this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE_DURATION] // { hours: 0, minutes: 1, seconds: 0 }
     }
   },
   mounted () {
+    this.timeout = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE_DURATION]
+    this.expired = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE_EXPIRED]
+    if (this.expired) {
+      this.$emit('evPaymentExpired')
+    }
     this.startCountdown()
   },
   computed: {
@@ -41,6 +57,14 @@ export default {
     }
   },
   methods: {
+    expires () {
+      return this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE_EXPIRES]
+    },
+    clockReset () {
+      this.$store.dispatch('fetchRates')
+      this.expired = true
+      this.$emit('evTimeout')
+    },
     startCountdown () {
       var duration = moment.duration(this.timeout)
       var interval = 1
@@ -60,11 +84,14 @@ export default {
         }
         $self.countdown = min + ':' + sec
         if (min <= 0 && sec <= 0) {
-          $self.$emit('clockReset')
+          $self.clockReset()
           // $self.timeout.seconds += 2
           duration = moment.duration($self.timeout)
         }
       }, 1000)
+    },
+    evPaymentExpired () {
+      this.$emit('evPaymentExpired')
     }
   }
 }

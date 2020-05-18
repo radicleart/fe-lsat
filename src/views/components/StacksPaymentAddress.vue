@@ -1,12 +1,12 @@
 <template>
 <div class="d-flex flex-column align-items-center">
-  <div class="mt-3 mx-auto" v-if="!stacksSupported" style="height: 40vh;">
+  <div class="rd-text mt-3 mx-auto" v-if="!stacksSupported" style="height: 40vh;">
     <h2 class="mt-0">Coming soon - stay tuned!</h2>
   </div>
   <div class="mb-3 mx-auto" v-if="stacksSupported">
     <canvas id="qrcode"></canvas>
   </div>
-  <div class="my-5 d-flex justify-content-center" v-if="stacksSupported">
+  <div class="rd-text my-5 d-flex justify-content-center" v-if="stacksSupported">
     <span><small>Send the indicated amount to the address below</small></span>
   </div>
   <b-input-group class="mb-3" v-if="stacksSupported">
@@ -15,7 +15,7 @@
     </b-input-group-prepend>
     <b-form-input readonly id="payment-amount-btc" style="height: 50px;" :value="paymentAmount" placeholder="Bitcoin amount"></b-form-input>
     <b-input-group-append>
-      <b-button class="bg-white text-dark" @click="copyAmount($event)"><i class="far fa-copy"></i></b-button>
+      <b-button class="bg-white text-dark" @click="copyAmount($event)"><font-awesome-icon width="15px" icon="copy"/></b-button>
     </b-input-group-append>
   </b-input-group>
   <b-input-group class="mb-3" v-if="stacksSupported">
@@ -24,7 +24,7 @@
     </b-input-group-prepend>
     <b-form-input readonly id="payment-address-btc" style="height: 50px;" :value="paymentAddress" placeholder="Stacks address"></b-form-input>
     <b-input-group-append>
-      <b-button class="bg-white text-dark" @click="copyAddress($event)"><i class="far fa-copy"></i></b-button>
+      <b-button class="bg-white text-dark" @click="copyAddress($event)"><font-awesome-icon width="15px" icon="copy"/></b-button>
     </b-input-group-append>
   </b-input-group>
 </div>
@@ -67,22 +67,21 @@ export default {
       return false
     },
     paymentAmount () {
-      const configuration = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
-      return configuration.value.amountBtc
+      const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
+      return paymentChallenge.xchange.amountBtc
     },
     paymentAddress () {
-      const lsat = this.$store.getters[LSAT_CONSTANTS.KEY_LSAT]
-      return lsat.fallbackAddress
+      const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
+      return paymentChallenge.bitcoinInvoice.bitcoinAddress
     }
   },
 
   methods: {
     paymentUri () {
-      const configuration = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
-      const lsat = this.$store.getters[LSAT_CONSTANTS.KEY_LSAT]
-      let uri = 'bitcoin:' + lsat.fallbackAddress
-      uri += '?amount=' + configuration.value.amountBtc
-      uri += '&label=' + lsat.memo
+      const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
+      let uri = 'bitcoin:' + paymentChallenge.bitcoinInvoice.bitcoinAddress
+      uri += '?amount=' + paymentChallenge.xchange.amountBtc
+      uri += '&label=' + paymentChallenge.lsatInvoice.memo
       return uri
     },
     addQrCode () {

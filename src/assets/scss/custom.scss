@@ -1,7 +1,102 @@
 @import 'my_variables.scss';
-@import '../../../node_modules/bootstrap/scss/bootstrap.scss';
+@import 'node_modules/bootstrap/scss/bootstrap';
+@import 'node_modules/bootstrap-vue/src/index.scss';
 
 /* Roboto regular */
+
+@font-face {
+    font-family: "Roboto";
+    src: url("/fonts/Roboto/Roboto-Light.ttf") format('truetype');
+    font-weight: 100;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "Roboto";
+    src: url("/fonts/Roboto/Roboto-Regular.ttf") format('truetype');
+    font-weight: 300;
+    font-style: normal;
+}
+
+/* Roboto italic */
+
+@font-face {
+    font-family: "Roboto";
+    src: url('/fonts/Roboto/Roboto-Medium.ttf') format('truetype');
+    font-weight: 400;
+    font-style: italic;
+}
+
+/* Roboto bold */
+
+@font-face {
+    font-family: "Roboto";
+    src: url('/fonts/Roboto/Roboto-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+::-webkit-input-placeholder { /* Edge */
+  color: red;
+}
+
+:-ms-input-placeholder { /* Internet Explorer 10-11 */
+  color: red;
+}
+
+::placeholder {
+  color: #999 !important;
+  font-weight: 200;
+}
+
+@mixin linear-gradient($color1, $color2){
+    background: $color1; /* For browsers that do not support gradients */
+    background: -webkit-linear-gradient(90deg, $color1 , $color2); /* For Safari 5.1 to 6.0 */
+    background: -o-linear-gradient(90deg, $color1, $color2); /* For Opera 11.1 to 12.0 */
+    background: -moz-linear-gradient(90deg, $color1, $color2); /* For Firefox 3.6 to 15 */
+    background: linear-gradient(0deg, $color1 , $color2); /* Standard syntax */
+}
+
+body {
+  margin: 0;
+  font-weight: 300;
+  min-height: 100vh;
+  background-color: #212121;
+  font-family: 'Roboto', sans-serif;
+}
+
+.page-footer.dark {
+  background-color: #706f70;
+}
+
+// With variable
+.text-cyan { color: $cyan; }
+
+.light-grey-section{ background-color: #f8f8f8; }
+
+
+/**
+* Component Styling
+**/
+
+/** Forms **/
+.form-control {
+  border-radius: 0px;
+}
+
+/** Buttons **/
+.btn-outline-grey, .outline-grey {
+  border: 1px solid $gray-700;
+}
+
+button {
+  height:50px;
+}
+
+.btn{
+  border: solid 1px #707070;
+  background-color: transparent;
+}
 
 .card-group {
   margin: 10px 10px 10px 10px;
@@ -14,4 +109,30 @@
 }
 .card-body {
   padding: 10px;
+}
+footer {
+  padding: 0px;
+}
+.cd-input {
+  padding: 5px;
+  border: none;
+  border-radius: 10px;
+  text-align: center;
+  width: 60px;
+}
+.rd-input {
+  margin-left: 5px;
+  background-color: #696969;
+  padding: 5px;
+  border: none;
+  border-radius: 10px;
+  text-align: center;
+  width: 130px;
+}
+.total-amount-fiat {
+  width: 80px;
+}
+.free-spin {
+  font-weight: 700;
+  /*color: #0277bd;*/
 }

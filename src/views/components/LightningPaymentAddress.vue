@@ -2,33 +2,24 @@
 <div class="mt-3 d-flex flex-column align-items-center">
   <b-tabs content-class="mt-3" class="text-center" style="width: 100%">
     <b-tab title="Make Payment" active>
-      <div>
+      <div class="mb-3">
         <canvas ref="lndQrcode"></canvas>
       </div>
-      <div class="d-flex justify-content-center">
+      <div class="rd-text mb-3 d-flex justify-content-center">
         <span @click.prevent="addQrCode()"><small>Send the indicated amount to the address below</small></span>
       </div>
       <b-input-group class="mb-3">
-        <b-input-group-prepend>
-          <span class="input-group-text"><i class="fab fa-btc"></i></span>
-        </b-input-group-prepend>
-        <b-form-input readonly ref="paymentAmountBtc" style="height: 50px;" :value="paymentAmount" placeholder="Bitcoin amount"></b-form-input>
-        <b-input-group-append>
-          <b-button class="bg-light" @click="copyAmount($event)"><i class="far fa-copy"></i></b-button>
-        </b-input-group-append>
+        <b-form-input readonly ref="paymentAmountBtc" style="height: 50px; text-align: center;" :value="paymentAmount" placeholder="Bitcoin amount"></b-form-input>
       </b-input-group>
       <b-input-group class="mb-3">
-        <b-input-group-prepend>
-          <span class="input-group-text"><i class="fas fa-address-book"></i></span>
-        </b-input-group-prepend>
         <b-form-input readonly ref="paymentAddressBtc" style="height: 50px;" :value="paymentRequest" placeholder="Bitcoin address"></b-form-input>
         <b-input-group-append>
-          <b-button class="bg-light" @click="copyAddress($event)"><i class="far fa-copy"></i></b-button>
+          <b-button class="bg-light" @click="copyAddress($event)"><font-awesome-icon width="15px" icon="copy"/></b-button>
         </b-input-group-append>
       </b-input-group>
     </b-tab>
     <b-tab title="Open Channel">
-      <div class="d-flex justify-content-center text-center mb-3">
+      <div class="rd-text d-flex justify-content-center text-center mb-3">
         <span><small>For better connectivity you can open a lightning channel.</small></span>
       </div>
       <div class="d-flex justify-content-center mb-3">
@@ -41,7 +32,7 @@
           </b-input-group-prepend>
           <b-form-input v-if="channel" readonly ref="paymentUriBtc" style="height: 50px;" :value="channel" placeholder="Lightning channel"></b-form-input>
           <b-input-group-append>
-            <b-button class="bg-light" @click="copyUri($event)"><i class="far fa-copy"></i></b-button>
+            <b-button class="bg-light" @click="copyUri($event)"><font-awesome-icon width="15px" icon="copy"/></b-button>
           </b-input-group-append>
         </b-input-group>
       </div>
@@ -67,9 +58,7 @@ export default {
     return {
       showChannel: false,
       token: null,
-      info: null,
       channel: null,
-      pubkeys: null,
       peerAddress: null
     }
   },
@@ -89,8 +78,8 @@ export default {
   methods: {
     addQrCode () {
       var element = this.$refs.lndQrcode
-      const lsat = this.$store.getters[LSAT_CONSTANTS.KEY_LSAT]
-      const paymentUri = 'lightning:' + lsat.invoice
+      const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
+      const paymentUri = 'lightning:' + paymentChallenge.lsatInvoice.paymentRequest
       QRCode.toCanvas(element, paymentUri, { errorCorrectionLevel: 'H' },
         function (error) {
           if (error) console.error(error)
@@ -108,12 +97,11 @@ export default {
         })
     },
     fetchInfo () {
+      const headers = this.$store.getters[LSAT_CONSTANTS.GET_HEADERS]
       axios({
         method: 'get',
         url: API_PATH + '/lsat/v1/lightning/alice/getInfo',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers: headers
       }).then(response => {
         this.info = response.data
         this.addChannelQrCode()
@@ -122,50 +110,19 @@ export default {
           console.log(error)
         })
     },
-    fetchPeerInfo () {
-      axios({
-        method: 'get',
-        url: API_PATH + '/lsat/v1/lightning/{channel}/getNodeInfo/{pubkey}',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }).then(response => {
-        this.info = response.data
-      })
-        .catch((error) => {
-          console.log(error)
-        })
-    },
-    fetchPubkeys () {
-      axios({
-        method: 'get',
-        url: API_PATH + '/lsat/v1/lightning/pubkeys',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }).then(response => {
-        this.pubkeys = response.data
-      })
-        .catch((error) => {
-          console.log(error)
-        })
-    },
     copyAmount () {
-      // var copyText = document.getElementById('paymentAmountBtc')
       var copyText = this.$refs.paymentAmountBtc
       copyText.select()
       document.execCommand('copy')
       this.$notify({ type: 'success', title: 'Copied Address', text: 'Copied the address to clipboard: ' + copyText.value })
     },
     copyAddress () {
-      // var copyText = document.getElementById('paymentAddressBtc')
       var copyText = this.$refs.paymentAddressBtc
       copyText.select()
       document.execCommand('copy')
       this.$notify({ type: 'success', title: 'Copied Address', text: 'Copied the address to clipboard: ' + copyText.value })
     },
     copyUri () {
-      // var copyText = document.getElementById('paymentUriBtc')
       var copyText = this.$refs.paymentUriBtc
       copyText.select()
       document.execCommand('copy')
@@ -173,19 +130,14 @@ export default {
     }
   },
   computed: {
-    configuration () {
-      const configuration = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
-      return configuration
-    },
     paymentRequest () {
-      const lsat = this.$store.getters[LSAT_CONSTANTS.KEY_LSAT]
-      return lsat.invoice
+      const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
+      return paymentChallenge.lsatInvoice.paymentRequest
     },
     paymentAmount () {
-      const lsat = this.$store.getters[LSAT_CONSTANTS.KEY_LSAT]
-      if (lsat && lsat.invoiceAmount) {
-        const amtBtc = lsat.invoiceAmount / 100000000
-        return lsat.invoiceAmount + ' satoshis ( ' + amtBtc + ' btc)'
+      const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
+      if (paymentChallenge.xchange.amountSat && paymentChallenge.lsatInvoice.numSatoshis) {
+        return paymentChallenge.xchange.amountSat + ' satoshis ( ' + paymentChallenge.xchange.amountBtc + ' btc)'
       }
       return '??'
     }

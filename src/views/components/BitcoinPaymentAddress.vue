@@ -1,27 +1,27 @@
-<template>
+paymentId<template>
 <div class="d-flex flex-column align-items-center">
   <div class="mb-3 mx-auto">
-    <canvas  ref="lndQrcode"></canvas>
+    <canvas ref="lndQrcode"></canvas>
   </div>
-  <div class="mb-3 d-flex justify-content-center">
+  <div class="rd-text mb-3 d-flex justify-content-center">
     <span><small>Send the indicated amount to the address below</small></span>
   </div>
   <b-input-group class="mb-3">
     <b-input-group-prepend>
       <span class="input-group-text"><i class="fab fa-btc"></i></span>
     </b-input-group-prepend>
-    <b-form-input readonly id="payment-amount-btc" style="height: 50px;" :value="paymentAmount" placeholder="Bitcoin amount"></b-form-input>
+    <b-form-input readonly ref="paymentAmountBtc" style="height: 50px;" :value="paymentAmount" placeholder="Bitcoin amount"></b-form-input>
     <b-input-group-append>
-      <b-button class="bg-light" @click="copyAmount($event)"><i class="far fa-copy"></i></b-button>
+      <b-button class="bg-light" @click="copyAmount($event)"><font-awesome-icon width="15px" icon="copy"/></b-button>
     </b-input-group-append>
   </b-input-group>
   <b-input-group class="mb-3">
     <b-input-group-prepend>
       <span class="input-group-text"><i class="fas fa-address-book"></i></span>
     </b-input-group-prepend>
-    <b-form-input readonly id="payment-address-btc" style="height: 50px;" :value="paymentAddress" placeholder="Bitcoin address"></b-form-input>
+    <b-form-input readonly ref="paymentAddressBtc" style="height: 50px;" :value="paymentAddress" placeholder="Bitcoin address"></b-form-input>
     <b-input-group-append>
-      <b-button class="bg-light" @click="copyAddress($event)"><i class="far fa-copy"></i></b-button>
+      <b-button class="bg-light" @click="copyAddress($event)"><font-awesome-icon width="15px" icon="copy"/></b-button>
     </b-input-group-append>
   </b-input-group>
 </div>
@@ -49,22 +49,21 @@ export default {
   },
   computed: {
     paymentAmount () {
-      const configuration = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
-      return configuration.value.amountBtc
+      const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
+      return paymentChallenge.xchange.amountBtc
     },
     paymentAddress () {
-      const address = this.$store.getters[LSAT_CONSTANTS.KEY_BITCOIN_ADDRESS]
-      return address
+      const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
+      return paymentChallenge.bitcoinInvoice.bitcoinAddress
     }
   },
 
   methods: {
     paymentUri () {
-      const address = this.$store.getters[LSAT_CONSTANTS.KEY_BITCOIN_ADDRESS]
-      const configuration = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
-      let uri = 'bitcoin:' + address
-      uri += '?amount=' + configuration.value.amountBtc
-      uri += '&label=' + configuration.productId
+      const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
+      let uri = 'bitcoin:' + paymentChallenge.bitcoinInvoice.bitcoinAddress
+      uri += '?amount=' + paymentChallenge.xchange.amountBtc
+      uri += '&label=' + paymentChallenge.paymentId
       return uri
     },
     addQrCode () {
@@ -75,13 +74,13 @@ export default {
         function () {})
     },
     copyAmount () {
-      var copyText = document.getElementById('payment-amount-btc')
+      var copyText = this.$refs.paymentAmountBtc
       copyText.select()
       document.execCommand('copy')
       this.$notify({ type: 'success', title: 'Copied Address', text: 'Copied the address to clipboard: ' + copyText.value })
     },
     copyAddress () {
-      var copyText = document.getElementById('payment-address-btc')
+      var copyText = this.$refs.paymentAddressBtc
       copyText.select()
       document.execCommand('copy')
       this.$notify({ type: 'success', title: 'Copied Address', text: 'Copied the address to clipboard: ' + copyText.value })

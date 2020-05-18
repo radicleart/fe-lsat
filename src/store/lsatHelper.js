@@ -4,38 +4,40 @@ import moment from 'moment'
 import axios from 'axios'
 import SockJS from 'sockjs-client'
 import Stomp from '@stomp/stompjs'
+import { LSAT_CONSTANTS } from '@/lsat-constants'
+import _ from 'lodash'
 
 const AUTHORIZATION = 'Authorization'
 const API_PATH = process.env.VUE_APP_RADICLE_API
-const ETH_RATE_PATH = process.env.VUE_APP_ETH_RATE_PATH
+const ETH_RATE_PATH = process.env.VUE_APP_ETH_RATE_PATH2
+const BTC_RATE_PATH = process.env.VUE_APP_BTC_RATE_PATH
 let socket = null
 let stompClient = null
-const headers = {
-  // 'X-XSRF-TOKEN': VueCookies.get('XSRF-TOKEN'),
-  'Content-Type': 'application/json'
+const headers = function () {
+  return store.getters[LSAT_CONSTANTS.GET_HEADERS]
 }
-const getPurchaseOrder = function (configuration) {
+const getPurchaseOrder = function (paymentChallenge) {
   const MYKEY = 'getTempUserId'
   const tuid = store.getters[MYKEY]
   return {
     status: 3,
-    productId: configuration.productId,
-    memo: 'product-id=' + configuration.productId,
+    paymentId: paymentChallenge.paymentId,
+    memo: 'product-id=' + paymentChallenge.paymentId,
     tuid: tuid,
-    amountSat: configuration.value.amountSat,
-    amountBtc: configuration.value.amountBtc
+    amountSat: paymentChallenge.xchange.amountSat,
+    amountBtc: paymentChallenge.xchange.amountBtc
   }
 }
 const lsatHelper = {
-  startListening (paymentHash) {
+  startListening (paymentId) {
     socket = new SockJS(API_PATH + '/lsat/ws1/mynews')
     stompClient = Stomp.over(socket)
     stompClient.connect({}, function () {
-      stompClient.subscribe('/queue/mynews-' + paymentHash, function (response) {
-        const settledInvoice = JSON.parse(response.body)
-        store.commit('addSettledInvoice', settledInvoice)
+      stompClient.subscribe('/queue/mynews-' + paymentId, function (response) {
+        const paymentChallenge = JSON.parse(response.body)
+        store.commit('addPaymentChallenge', paymentChallenge)
       })
-      stompClient.subscribe('/queue/mynews-' + 'rates', function (response) {
+      stompClient.subscribe('/queue/rates', function (response) {
         const rates = JSON.parse(response.body)
         store.commit('addRates', rates)
       })
@@ -44,45 +46,89 @@ const lsatHelper = {
       console.log(error)
     })
   },
-  stopListening (productId) {
+  stopListening (paymentId) {
     if (stompClient) stompClient.disconnect()
   },
-  challenge (configuration) {
+
+  receivePayment (paymentChallenge) {
+    return new Promise((resolve) => {
+      const request = {
+        method: 'put',
+        url: API_PATH + '/lsat/v1/payment',
+        headers: headers(),
+        data: paymentChallenge
+      }
+      axios(request).then(response => {
+        resolve(response.data)
+      }).catch((error) => {
+        resolve(error.response.data)
+      })
+    })
+  },
+  deleteExpiredPayment (paymentId) {
+    return new Promise((resolve) => {
+      const request = {
+        method: 'delete',
+        url: API_PATH + '/lsat/v1/payment/' + paymentId,
+        headers: headers()
+      }
+      axios(request).then(response => {
+        resolve(response.data)
+      }).catch((error) => {
+        resolve(error.response.data)
+      })
+    })
+  },
+  tokenChallenge (configuration) {
+    return new Promise((resolve) => {
+      // the payment challenge has been fullfilled - fetch the goodies..
+      const paymentChallenge = store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
+      const token = localStorage.getItem('402-token-' + paymentChallenge.paymentId)
+      const request = {
+        method: 'post',
+        url: API_PATH + configuration.purchaseEndpoint,
+        headers: headers(),
+        data: getPurchaseOrder(paymentChallenge)
+      }
+      request.headers[AUTHORIZATION] = 'LSAT ' + token
+      axios(request).then(response => {
+        resolve(response.data)
+      }).catch((error) => {
+        resolve(error.response.data)
+      })
+    })
+  },
+  challenge (paymentChallenge, configuration) {
     return new Promise((resolve, reject) => {
-      const token = localStorage.getItem('402-token-' + configuration.productId)
-      const lsat = JSON.parse(localStorage.getItem('402-lsat-' + configuration.productId))
-      if (!token && lsat && lsat.timeCreated && lsat.paymentHash) {
-        const now = moment().valueOf()
-        const expired = now > lsat.timeCreated + 3600000
-        if (!expired) {
-          resolve(lsat)
-          return
-        }
+      const now = moment().valueOf()
+      const expired = now > paymentChallenge.invoiceExpiry
+      if (!expired) {
+        resolve(paymentChallenge)
+        return
       }
       const request = {
         method: 'post',
         url: API_PATH + configuration.purchaseEndpoint,
-        headers: headers,
-        data: getPurchaseOrder(configuration)
+        headers: headers(),
+        data: getPurchaseOrder(paymentChallenge)
       }
-
-      if (token) {
-        request.headers[AUTHORIZATION] = 'LSAT ' + token
-      } else {
-        request.headers[AUTHORIZATION] = null
-      }
+      request.headers[AUTHORIZATION] = null
       axios(request).then(response => {
         resolve(response.data)
       })
         .catch((error) => {
           if (error.response.status === 402) {
+            const paymentChallenge = error.response.data
             const header = error.response.headers['www-authenticate']
             const lsat = Lsat.fromHeader(header)
-            localStorage.setItem('402-lsat-' + configuration.productId, JSON.stringify(lsat))
-            lsatHelper.getNewBitcoinAddress(configuration).then((fallbackAddress) => {
-              localStorage.setItem('402-btca-' + configuration.productId, fallbackAddress)
-              resolve(lsat)
-            })
+            console.log('lsat', lsat)
+
+            const macaroon = 'LSAT macaroon="' + paymentChallenge.lsatInvoice.token + '"'
+            const fullMac = macaroon + ', invoice="' + paymentChallenge.lsatInvoice.paymentRequest + '"'
+            console.log('fullMac', Lsat.fromHeader(fullMac))
+
+            store.commit('addPaymentChallenge', paymentChallenge)
+            resolve(paymentChallenge)
           } else {
             console.log('Problem calling endpoint ', error)
             resolve()
@@ -90,93 +136,88 @@ const lsatHelper = {
         })
     })
   },
-  checkPayment (productId) {
+  checkPayment (paymentChallenge) {
     return new Promise((resolve) => {
-      const token = lsatHelper.getToken(productId)
+      const token = lsatHelper.getToken(paymentChallenge.paymentId)
       if (token) {
         resolve(token)
         return
       }
-      const lsat = lsatHelper.getLsat(productId)
-      if (!lsat) {
-        resolve()
-        return
-      }
       const request = {
-        method: 'post',
-        url: API_PATH + '/lsat/v1/invoice/' + lsat.paymentHash,
-        headers: headers,
-        data: null
+        headers: headers()
+      }
+      if (paymentChallenge.paymentId) {
+        request.method = 'get'
+        request.url = API_PATH + '/lsat/v1/invoice/' + paymentChallenge.paymentId
+      } else {
+        request.method = 'post'
+        request.url = API_PATH + '/lsat/v1/payment'
+        request.data = paymentChallenge
       }
       axios(request).then(response => {
-        if (response && response.data) {
-          const invoice = response.data
-          if (invoice.state === 'SETTLED' && invoice.preimage) {
-            const token = lsatHelper.storeToken(invoice.preimage, productId)
-            resolve(token)
-          } else {
-            resolve()
-          }
+        if (typeof response.data === 'object') {
+          resolve(response.data)
+        } else {
+          request.method = 'post'
+          request.url = API_PATH + '/lsat/v1/payment'
+          request.data = paymentChallenge
+          axios(request).then(response => {
+            resolve(response.data)
+          })
         }
       })
     })
   },
-  fetchRates (endpoint) {
+  fetchRates () {
     return new Promise((resolve) => {
       const request = {
         method: 'get',
-        url: API_PATH + endpoint
+        url: API_PATH + BTC_RATE_PATH,
+        headers: headers()
       }
       axios(request).then(response => {
         if (response && response.data) {
           const rates = response.data
-          store.commit('addRates', rates)
           const request = {
             method: 'get',
             url: ETH_RATE_PATH
           }
           axios(request).then(response => {
             if (response && response.data) {
-              store.commit('addEthToBtc', response.data)
-              resolve(rates)
+              let index = _.findIndex(response.data, function (o) {
+                return o.symbol === 'ETHBTC'
+              })
+              let entry = response.data[index]
+              const ethToBtcRate = { rate: Number(entry.weightedAvgPrice) }
+              index = _.findIndex(response.data, function (o) {
+                return o.symbol === 'STXBTC'
+              })
+              entry = response.data[index]
+              const stxToBtcRate = { rate: Number(entry.weightedAvgPrice) }
+              resolve({ bitcoinRates: rates, ethToBtcRate: ethToBtcRate, stxToBtcRate: stxToBtcRate })
             } else {
-              resolve(rates)
+              resolve({ bitcoinRates: rates, ethToBtcRate: { rate: 0 } })
             }
           }).catch((e) => {
-            resolve()
+            resolve({ bitcoinRates: rates, ethToBtcRate: { rate: 0 } })
           })
         } else {
-          resolve()
+          resolve({ bitcoinRates: [], ethToBtcRate: { rate: 0 } })
         }
       })
     })
   },
-  getNewBitcoinAddress (configuration) {
-    return new Promise((resolve) => {
-      const request = {
-        method: 'get',
-        url: API_PATH + '/lsat/v1/bitcoin-address/' + configuration.productId
-      }
-      axios(request).then(response => {
-        if (response && response.data) {
-          resolve(response.data)
-        } else {
-          resolve()
-        }
-      })
-    })
+  lsatExpired (paymentChallenge) {
+    var expiry = paymentChallenge.lsatInvoice.timestamp * 1000 + 3600000
+    const expired = moment(expiry).isBefore(moment({}))
+    return expired
   },
-  lsatExpired (productId) {
-    const lsat = JSON.parse(localStorage.getItem('402-lsat-' + productId))
-    if (!lsat) {
-      return true
-    }
-    var expires = moment(lsat.timeCreated + 3600000)
-    return moment(expires).isBefore(moment({}))
+  lsatExpires (paymentChallenge) {
+    var expires = paymentChallenge.lsatInvoice.timestamp * 1000 + 3600000
+    return moment(expires).format('YYYY-MM-DD HH:mm')
   },
-  lsatDuration (productId) {
-    const lsat = JSON.parse(localStorage.getItem('402-lsat-' + productId))
-    var expires = moment(lsat.timeCreated + 3600000)
+  lsatDuration (paymentChallenge) {
+    var expires = moment(paymentChallenge.lsatInvoice.timestamp * 1000 + 3600000)
     var duration = moment.duration(expires.diff(moment({})))
     var timeout = {
       hours: 0, // duration.asHours(),
@@ -185,21 +226,17 @@ const lsatHelper = {
     }
     return timeout
   },
-  storeToken (preimage, productId) {
+  storeToken (preimage, paymentChallenge) {
     if (!preimage) {
       return
     }
-    const lsat = JSON.parse(localStorage.getItem('402-lsat-' + productId))
+    const lsat = paymentChallenge.lsatInvoice
     const token = lsat.baseMacaroon + ':' + preimage
-    localStorage.setItem('402-token-' + productId, token)
+    localStorage.setItem('402-token-' + paymentChallenge.paymentId, token)
     return token
   },
-  getLsat (productId) {
-    const lsat = JSON.parse(localStorage.getItem('402-lsat-' + productId))
-    return lsat
-  },
-  getToken (productId) {
-    const token = localStorage.getItem('402-token-' + productId)
+  getToken (paymentId) {
+    const token = localStorage.getItem('402-token-' + paymentId)
     return token
   }
 }

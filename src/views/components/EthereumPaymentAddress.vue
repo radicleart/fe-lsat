@@ -1,16 +1,16 @@
 <template>
-<div class="d-flex flex-column align-items-center" style="height: 100vh;" v-if="loading">
+<div class="mt-3 rd-text d-flex flex-column align-items-center" style="height: 100vh;" v-if="loading">
   {{waitingMessage}}
 </div>
-<div class="d-flex flex-column align-items-center" v-else>
-  <b-input-group class="mb-3">
-    <span class="input-group-text"><a href="#" class="btn btn-warning btn-lg bg-warning" @click.prevent="sendPayment()">Pay with Meta Mask</a></span>
-  </b-input-group>
+<div class="rd-text mt-3 d-flex flex-column align-items-center" v-else>
+  <b-button href="#" class="mb-5 btn btn-dark border btn-lg text-warning" @click.prevent="sendPayment()">Pay with Meta Mask</b-button>
+  {{errorMessage}}
 </div>
 </template>
 
 <script>
 import { LSAT_CONSTANTS } from '@/lsat-constants'
+const NETWORK = process.env.VUE_APP_NETWORK
 
 // noinspection JSUnusedGlobalSymbols
 export default {
@@ -22,7 +22,8 @@ export default {
   data () {
     return {
       loading: false,
-      waitingMessage: 'Sending transaction to ethereum network - takes a minute or so...'
+      errorMessage: null,
+      waitingMessage: 'Open Meta Mask to proceed (sending transactions to the ethereum network takes a minute or so...)'
     }
   },
   watch: {
@@ -34,16 +35,17 @@ export default {
 
   methods: {
     sendPayment () {
-      const configuration = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
+      const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
       this.loading = true
-      this.$emit('paymentEvent', { opcode: 'eth-payment-waiting', message: this.waitingMessage })
-      this.$store.dispatch('ethereumStore/transact', { opcode: 'send-payment', amount: configuration.value.amountEth }).then((result) => {
-        result.opcode = 'eth-payment-confirmed'
-        result.message = 'Payment received with thanks.'
-        this.$emit('paymentEvent', result)
-        this.loading = false
+      this.$store.dispatch('ethereumStore/transact', { opcode: 'send-payment', amount: paymentChallenge.xchange.amountEth }).then((result) => {
+        const data = { status: 10, opcode: 'eth-payment-confirmed', txId: result.txId }
+        const paymentEvent = this.$store.getters[LSAT_CONSTANTS.KEY_RETURN_STATE](data)
+        this.$store.dispatch('receivePayment', paymentEvent).then((result) => {
+          this.$emit('paymentEvent', paymentEvent)
+          this.waitingMessage = result.message
+        })
       }).catch((e) => {
-        this.$emit('paymentEvent', { opcode: 'eth-payment-error', message: e.message })
+        this.errorMessage = 'Please ensure you are logged into your meta mask account on the ' + NETWORK + ' network'
         this.loading = false
       })
     }

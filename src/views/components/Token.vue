@@ -1,10 +1,15 @@
 <template>
-<div class="container" v-if="product">
+<div class="container mt-5" v-if="token">
   <div class="d-flex justify-content-center">
-      <h2>Valid LSAT Token</h2>
-      <h2>{{product.assetHash}}</h2>
+    <h2>Congrats! This is a valid LSAT token</h2>
   </div>
-  <div class="d-flex justify-content-center" v-if="productOrder">
+  <div  class="my-5 py-5 d-flex justify-content-center">
+    <div class="d-flex justify-content-center" v-if="showMessage">
+      {{message}}
+    </div>
+    <div v-else>
+      <a href="#" @click.prevent="$emit('startOver')">click here to start again</a>
+    </div>
   </div>
 </div>
 </template>
@@ -14,13 +19,14 @@ export default {
   name: 'Token',
   components: {
   },
-  props: ['token', 'product'],
+  props: ['token'],
   data () {
     return {
+      showMessage: false,
+      message: 'Generating fresh invoice'
     }
   },
   mounted () {
-    this.productId = this.$route.params.productId
   },
   methods: {
   },
