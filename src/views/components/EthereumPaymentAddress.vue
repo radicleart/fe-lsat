@@ -37,10 +37,13 @@ export default {
     sendPayment () {
       const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
       this.loading = true
+      this.$emit('paymentEvent', { opcode: 'eth-payment-begun1' })
       this.$store.dispatch('ethereumStore/transact', { opcode: 'send-payment', amount: paymentChallenge.xchange.amountEth }).then((result) => {
         const data = { status: 10, opcode: 'eth-payment-confirmed', txId: result.txId }
         const paymentEvent = this.$store.getters[LSAT_CONSTANTS.KEY_RETURN_STATE](data)
+        this.$emit('paymentEvent', { opcode: 'eth-payment-begun2' })
         this.$store.dispatch('receivePayment', paymentEvent).then((result) => {
+          this.$emit('paymentEvent', { opcode: 'eth-payment-begun3' })
           this.$emit('paymentEvent', paymentEvent)
           this.waitingMessage = result.message
         })

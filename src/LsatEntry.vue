@@ -64,6 +64,13 @@ export default {
   watch: {
     paymentChallenge (paymentChallenge, oldInvoice) {
       console.log(`We have ${paymentChallenge} fruits now, yay!`)
+      if (!paymentChallenge) {
+        return
+      }
+      if (oldInvoice && paymentChallenge.paymentId === oldInvoice.paymentId && paymentChallenge.status === oldInvoice.status) {
+        this.componentKey++
+        return
+      }
       if (paymentChallenge.status > 3) {
         const data = { opcode: 'lsat-payment-confirmed', status: paymentChallenge.status }
         const paymentEvent = this.$store.getters[LSAT_CONSTANTS.KEY_RETURN_STATE](data)
@@ -71,6 +78,10 @@ export default {
         this.waitingMessage = 'Thanks for paying - we sure hope you enjoy loopbomb!'
         this.result = data
         this.page = 'result'
+      } else if (paymentChallenge.status === 3) {
+        const data = { opcode: 'lsat-payment-begun', status: paymentChallenge.status }
+        const paymentEvent = this.$store.getters[LSAT_CONSTANTS.KEY_RETURN_STATE](data)
+        this.$emit('paymentEvent', paymentEvent)
       }
     }
   },

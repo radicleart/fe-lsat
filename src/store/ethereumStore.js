@@ -21,11 +21,22 @@ const NFT_ABI = [{
 }]
 
 const getWeb3 = function () {
-  if (typeof window.web3 !== 'undefined') {
-    return new Web3(window.web3.currentProvider)
-  } else {
-    return null
-  }
+  return new Promise((resolve, reject) => {
+    const ethereum = window.ethereum
+    let web3 = window.web3
+    if (typeof ethereum !== 'undefined') {
+      ethereum.enable().then((res) => {
+        web3 = new Web3(ethereum)
+        resolve(web3)
+      })
+    } else if (typeof web3 !== 'undefined') {
+      web3 = new Web3(web3.currentProvider)
+      resolve(web3)
+    } else {
+      web3 = new Web3(new Web3.providers.HttpProvider(process.env.WEB3_PROVIDER))
+      resolve(web3)
+    }
+  })
 }
 const resolveError = function (reject, error) {
   if (error && error.message && error.message.toLowerCase().indexOf('user denied') > -1) {
@@ -80,22 +91,30 @@ const ethereumStore = {
   actions: {
     transact ({ commit, state }, data) {
       return new Promise((resolve, reject) => {
-        const web3 = getWeb3()
-        if (!web3) {
-          reject(new Error('no ethereum provider registered - please download Meta Mask to continue!'))
-        }
-        web3.eth.getAccounts(function (error, accounts) {
-          if (error) {
-            reject(new Error('Please check you are logged in to meta mask - then try again?'))
-          } else if (!accounts || accounts.length === 0) {
-            reject(new Error('No accounts - not logged in to wallet'))
-          } else {
-            if (data.opcode === 'send-payment') {
-              sendPayment(web3, data, accounts[0], resolve, reject)
-            } else if (data.opcode === 'mint-token') {
-              mintToken(web3, data, accounts[0], resolve, reject)
-            }
+        getWeb3().then((web3) => {
+          if (!web3) {
+            reject(new Error('no ethereum provider registered - please download Meta Mask to continue!'))
           }
+          web3.eth.getAccounts(function (error, accounts) {
+            if (error) {
+              reject(new Error('Please check you are logged in to meta mask - then try again?'))
+            } else if (!accounts || accounts.length === 0) {
+              reject(new Error('No accounts - not logged in to wallet'))
+            } else {
+              if (data.opcode === 'send-payment') {
+                sendPayment(web3, data, accounts[0], resolve, reject)
+              } else if (data.opcode === 'mint-token') {
+                mintToken(web3, data, accounts[0], resolve, reject)
+              }
+            }
+          })
+        })
+      })
+    },
+    enable ({ commit, state }, data) {
+      return new Promise((resolve, reject) => {
+        getWeb3().then((web3) => {
+          resolve(true)
         })
       })
     }

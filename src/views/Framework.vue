@@ -4,9 +4,22 @@
     <crypto-picker class="mb-1 d-flex justify-content-left" :paymentOption="paymentOption" @updatePaymentOption="updatePaymentOption" />
     <crypto-stepper  class="mb-3 d-flex justify-content-left" @updateCredits="updateCredits" />
     <crypto-equality class="mb-5 d-flex justify-content-left" :paymentOption="paymentOption"/>
-    <crypto-countdown  class="mb-1 rd-text d-flex justify-content-center" @evPaymentExpired="evPaymentExpired" />
-    <b-card-text class="mb-3" v-if="!timeout">
+    <crypto-countdown  class="mb-1 rd-text d-flex justify-content-center" @evPaymentExpired="evPaymentExpired" @evTimeout="evTimeout" />
+    <b-card-text v-if="enabling" class="my-5 rd-text">
       <div class="container">
+        <div class="mb-5 d-flex justify-content-center">
+          Enabling meta mask... {{message}}
+        </div>
+        <div class="d-flex justify-content-center">
+          <b-button href="#" class="btn btn-dark border btn-lg text-warning" @click.prevent="enableMM()">Enable Meta Mask</b-button>
+        </div>
+      </div>
+      <b-card-text v-else class="mb-3" v-if="paying">
+        <loopbomb-spinner :message="message"/>
+      </b-card-text>
+    </b-card-text>
+    <b-card-text v-else class="mb-3">
+      <div class="container" v-if="!timeout">
         <div class="d-flex justify-content-center">
           <lightning-payment-address v-if="paymentOption === 'lightning'"/>
           <bitcoin-payment-address v-if="paymentOption === 'bitcoin'"/>
@@ -30,6 +43,7 @@ import StacksPaymentAddress from './components/StacksPaymentAddress'
 import CryptoStepper from './components/CryptoStepper'
 import CryptoPicker from './components/CryptoPicker'
 import CryptoEquality from './components/CryptoEquality'
+import LoopbombSpinner from './components/LoopbombSpinner'
 
 export default {
   name: 'Framework',
@@ -41,27 +55,51 @@ export default {
     CryptoStepper,
     CryptoPicker,
     CryptoEquality,
-    CryptoCountdown
+    CryptoCountdown,
+    LoopbombSpinner
   },
   data () {
     return {
       paymentOption: 'lightning',
       numbCredits: 2,
       updatingCredits: false,
-      timeout: false
+      timeout: false,
+      enabling: false,
+      message: null,
+      paying: false
     }
   },
   mounted () {
   },
   methods: {
     paymentEvent: function (data) {
-      this.page = 'ethConf'
-      this.$emit('paymentEvent', data)
+      if (data.opcode === 'eth-payment-begun1') {
+        this.paying = true
+        this.message = 'Sending payment ... takes up to a minute.'
+      } else if (data.opcode === 'eth-payment-begun2') {
+        this.paying = true
+        this.message = 'Payment successful - starting...'
+      } else if (data.opcode === 'eth-payment-begun3') {
+        this.paying = false
+      } else {
+        this.paying = false
+        this.$emit('paymentEvent', data)
+      }
+    },
+    enableMM: function (data) {
+      this.$store.dispatch('ethereumStore/enable').then((result) => {
+        this.enabling = false
+      }).catch((e) => {
+        this.message = e.message
+        this.enabling = true
+      })
     },
     evPaymentExpired () {
       const configuration = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
       this.$store.dispatch('deleteExpiredPayment').then(() => {
-        this.$store.dispatch('reinitialiseApp', configuration)
+        this.$store.dispatch('reinitialiseApp', configuration).then(() => {
+          // let the lsat-entry watcher on paymentChallenge handle updates.
+        })
       })
     },
     evTimeout () {
@@ -69,6 +107,9 @@ export default {
     },
     updatePaymentOption (paymentOption) {
       this.paymentOption = paymentOption
+      if (paymentOption === 'ethereum') {
+        this.enableMM()
+      }
     },
     updateCredits (credits) {
       // const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
