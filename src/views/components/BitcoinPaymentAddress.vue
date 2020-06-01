@@ -12,7 +12,7 @@ paymentId<template>
     </b-input-group-prepend>
     <b-form-input readonly ref="paymentAmountBtc" style="height: 50px;" :value="paymentAmount" placeholder="Bitcoin amount"></b-form-input>
     <b-input-group-append>
-      <b-button class="bg-light" @click="copyAmount($event)"><font-awesome-icon width="15px" icon="copy"/></b-button>
+      <b-button class="bg-light" @click="copyAmount($event)"><font-awesome-icon width="15px" height="15px" icon="copy"/></b-button>
     </b-input-group-append>
   </b-input-group>
   <b-input-group class="mb-3">
@@ -21,7 +21,7 @@ paymentId<template>
     </b-input-group-prepend>
     <b-form-input readonly ref="paymentAddressBtc" style="height: 50px;" :value="paymentAddress" placeholder="Bitcoin address"></b-form-input>
     <b-input-group-append>
-      <b-button class="bg-light" @click="copyAddress($event)"><font-awesome-icon width="15px" icon="copy"/></b-button>
+      <b-button class="bg-light" @click="copyAddress($event)"><font-awesome-icon width="15px" height="15px" icon="copy"/></b-button>
     </b-input-group-append>
   </b-input-group>
 </div>
@@ -41,7 +41,7 @@ export default {
   },
   watch: {
     'paymentAmount' () {
-      this.addQrCode()
+      // this.addQrCode()
     }
   },
   mounted () {

@@ -1,27 +1,41 @@
 <template>
-<div class="mt-3 rd-text d-flex flex-column align-items-center" style="height: 100vh;" v-if="loading">
-  {{waitingMessage}}
-</div>
-<div class="rd-text mt-3 d-flex flex-column align-items-center" v-else>
-  <b-button href="#" class="mb-5 btn btn-dark border btn-lg text-warning" @click.prevent="sendPayment()">Pay with Meta Mask</b-button>
-  {{errorMessage}}
+<div class="vld-parent d-flex flex-column align-items-center">
+    <loading :active.sync="loading"
+    :can-cancel="true"
+    :on-cancel="onCancel"
+    :is-full-page="fullPage"></loading>
+
+  <div class="mt-3 rd-text d-flex flex-column align-items-center" style="" v-if="loading">
+    {{waitingMessage}}
+  </div>
+  <div class="rd-text mt-3 d-flex flex-column align-items-center" v-else>
+    <b-button href="#" class="mb-5 btn btn-dark border btn-lg text-warning" @click.prevent="sendPayment()">Pay with Meta Mask</b-button>
+    {{errorMessage}}
+  </div>
 </div>
 </template>
 
 <script>
 import { LSAT_CONSTANTS } from '@/lsat-constants'
+// Import component
+import Loading from 'vue-loading-overlay'
+// Import stylesheet
+// import 'vue-loading-overlay/dist/vue-loading.css'
+
 const NETWORK = process.env.VUE_APP_NETWORK
 
 // noinspection JSUnusedGlobalSymbols
 export default {
   name: 'EthereumPaymentAddress',
   components: {
+    Loading
   },
   props: {
   },
   data () {
     return {
       loading: false,
+      fullPage: true,
       errorMessage: null,
       waitingMessage: 'Open Meta Mask to proceed (sending transactions to the ethereum network takes a minute or so...)'
     }
@@ -46,16 +60,21 @@ export default {
           this.$emit('paymentEvent', { opcode: 'eth-payment-begun3' })
           this.$emit('paymentEvent', paymentEvent)
           this.waitingMessage = result.message
+          this.loading = false
         })
       }).catch((e) => {
         this.errorMessage = 'Please ensure you are logged into your meta mask account on the ' + NETWORK + ' network'
         this.loading = false
       })
+    },
+    onCancel () {
+      this.loading = false
     }
   }
 }
 </script>
-<style scoped>
+<style lang="scss">
+@import "@/assets/scss/lsat-custom.scss";
 .tab-content {
   padding-top: 0px;
 }

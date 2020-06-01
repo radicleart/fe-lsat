@@ -2,7 +2,7 @@
 <b-card-text>
   <span class="mr-1 rd-text" v-html="currentSymbol"></span>
   <input readonly="true" class="rd-input" id="input-horizontal2" :value="currentAmount" placeholder="$$$"/>
-  <font-awesome-icon class="rd-text ml-2" width="15px" icon="equals"/>
+  <font-awesome-icon class="rd-text ml-2" width="15px" height="15px" icon="equals"/>
   <input readonly="true" class="total-amount-fiat rd-input" id="input-horizontal3" :value="amountFiat" placeholder="$$$"/>
   <span class="rd-text ml-2">{{fiatCurrency}}</span>
 </b-card-text>

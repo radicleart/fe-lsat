@@ -1,9 +1,9 @@
 <template>
   <b-card-text>
     <div>
-      <font-awesome-icon width="15px" icon="angle-double-down" @click.prevent="countDown" class="fa-small text-info" style="cursor: pointer;"/>
+      <font-awesome-icon width="15px" height="15px" icon="angle-double-down" @click.prevent="countDown" class="fa-small text-info" style="cursor: pointer;"/>
       <input readonly="true" class="mx-3 bg-warning cd-input" @input="updateCredits($event)" id="input-horizontal1" v-model="localCredits" placeholder="$$$"/>
-      <font-awesome-icon width="15px" icon="angle-double-up" @click.prevent="countUp" class="fa-small  text-info mr-3" style="cursor: pointer;"/>
+      <font-awesome-icon width="15px" height="15px" icon="angle-double-up" @click.prevent="countUp" class="fa-small  text-info mr-3" style="cursor: pointer;"/>
       <span class="mr-2 rd-text">Spins</span>
     </div>
   </b-card-text>

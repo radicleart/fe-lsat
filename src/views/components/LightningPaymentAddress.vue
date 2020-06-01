@@ -14,7 +14,7 @@
       <b-input-group class="mb-3">
         <b-form-input readonly ref="paymentAddressBtc" style="height: 50px;" :value="paymentRequest" placeholder="Bitcoin address"></b-form-input>
         <b-input-group-append>
-          <b-button class="bg-light" @click="copyAddress($event)"><font-awesome-icon width="15px" icon="copy"/></b-button>
+          <b-button class="bg-light" @click="copyAddress($event)"><font-awesome-icon width="15px" height="15px" icon="copy"/></b-button>
         </b-input-group-append>
       </b-input-group>
     </b-tab>
@@ -32,7 +32,7 @@
           </b-input-group-prepend>
           <b-form-input v-if="channel" readonly ref="paymentUriBtc" style="height: 50px;" :value="channel" placeholder="Lightning channel"></b-form-input>
           <b-input-group-append>
-            <b-button class="bg-light" @click="copyUri($event)"><font-awesome-icon width="15px" icon="copy"/></b-button>
+            <b-button class="bg-light" @click="copyUri($event)"><font-awesome-icon width="15px" height="15px" icon="copy"/></b-button>
           </b-input-group-append>
         </b-input-group>
       </div>

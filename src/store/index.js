@@ -43,6 +43,30 @@ const getAmountSat = function (amountBtc) {
     return 0
   }
 }
+const options = [{ text: 'Lightning', value: 'lightning' }, { text: 'Bitcoin', value: 'bitcoin' }, { text: 'Ether', value: 'ethereum' }, { text: 'Stacks', value: 'stacks' }]
+const getPaymentOptions = function (paymentChallenge, configuration) {
+  const allowedOptions = []
+  options.forEach(function (option) {
+    if (option.value === 'lightning' && paymentChallenge.lsatInvoice && paymentChallenge.lsatInvoice.paymentHash) {
+      if (!configuration.paymentOptions || configuration.paymentOptions.allowLightning) {
+        allowedOptions.push({ text: 'Lightning', value: 'lightning' })
+      }
+    } else if (option.value === 'bitcoin' && paymentChallenge.bitcoinInvoice && paymentChallenge.bitcoinInvoice.bitcoinAddress) {
+      if (!configuration.paymentOptions || configuration.paymentOptions.allowBitcoin) {
+        allowedOptions.push({ text: 'Bitcoin', value: 'bitcoin' })
+      }
+    } else if (option.value === 'ethereum') {
+      if (!configuration.paymentOptions || configuration.paymentOptions.allowEthereum) {
+        allowedOptions.push({ text: 'Ether', value: 'ethereum' })
+      }
+    } else if (option.value === 'stacks') {
+      if (!configuration.paymentOptions || configuration.paymentOptions.allowStacks) {
+        allowedOptions.push({ text: 'Stacks', value: 'stacks' })
+      }
+    }
+  })
+  return allowedOptions
+}
 const initPaymentChallenge = function (rateObject, creditAttributes) {
   let amountFiat = creditAttributes.amountFiatPerCredit
   if (creditAttributes.useCredits) {
@@ -79,7 +103,9 @@ export default new Vuex.Store({
     tempUserId: false,
     invoice: null,
     headers: null,
-    paymentChallenge: null
+    paymentChallenge: null,
+    paymentOption: null,
+    paymentOptions: []
   },
   getters: {
     getReturnState: state => data => {
@@ -90,6 +116,13 @@ export default new Vuex.Store({
         paymentId: state.paymentChallenge.paymentId
       }
       return result
+    },
+    getCurrentPaymentOption: (state) => {
+      return state.configuration.paymentOption
+    },
+    getPaymentOptions: state => {
+      const paymentOptions = getPaymentOptions(state.paymentChallenge, state.configuration)
+      return paymentOptions
     },
     getHeaders: state => {
       return state.headers
@@ -151,6 +184,15 @@ export default new Vuex.Store({
       localStorage.setItem('402-payment-id', o.paymentId)
       state.paymentChallenge = o
     },
+    addPaymentOption (state, o) {
+      state.configuration.paymentOption = o
+    },
+    addPaymentOptions (state, o) {
+      state.paymentOptions = getPaymentOptions(state.paymentChallenge, state.configuration)
+      if (!state.configuration.paymentOption) {
+        state.configuration.paymentOption = state.paymentOptions[0].value
+      }
+    },
     addRates (state, o) {
       state.rateObject.bitcoinRates = o
     },
@@ -183,7 +225,7 @@ export default new Vuex.Store({
           commit('addPaymentChallenge', initPaymentChallenge(state.rateObject, state.configuration.creditAttributes))
           lsatHelper.checkPayment(state.paymentChallenge).then((paymentChallenge) => {
             commit('addPaymentChallenge', paymentChallenge)
-            if (paymentChallenge.lsatInvoice.state === 'SETTLED' && paymentChallenge.lsatInvoice.preimage) {
+            if (paymentChallenge.lsatInvoice && paymentChallenge.lsatInvoice.state === 'SETTLED' && paymentChallenge.lsatInvoice.preimage) {
               lsatHelper.storeToken(paymentChallenge.lsatInvoice.preimage, paymentChallenge)
               lsatHelper.tokenChallenge(configuration).then((resource) => {
                 resolve({ tokenAcquired: true, resource: resource })
@@ -191,9 +233,13 @@ export default new Vuex.Store({
             } else if (paymentChallenge.status > 3) {
               resolve({ tokenAcquired: true })
             } else {
-              lsatHelper.challenge(paymentChallenge, configuration).then((paymentChallenge) => {
-                commit('addPaymentChallenge', paymentChallenge)
-                resolve({ tokenAcquired: false, resource: paymentChallenge })
+              commit('addPaymentChallenge', paymentChallenge)
+              lsatHelper.challenge(paymentChallenge, configuration).then((lsatEnabledPC) => {
+                commit('addPaymentOptions')
+                if (lsatEnabledPC) {
+                  commit('addPaymentChallenge', lsatEnabledPC)
+                }
+                resolve({ tokenAcquired: false, resource: state.paymentChallenge })
               })
             }
           })

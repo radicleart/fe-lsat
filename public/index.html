@@ -12,7 +12,8 @@
   <body>
     <noscript>You need javascript.</noscript>
     <script>
-      window.risidioPaymentConfig = JSON.stringify({ apiKey: 'demo-local', opcode: 'payment', paymentId: 'XqLKQxEAACQAYvsu', purchaseEndpoint: '/assets/buy-now', creditAttributes: {amountFiatPerCredit: 0.5, fiatCurrency: 'EUR', useCredits: true, start: 1, step: 2, min: 2, max: 20}})
+      window.risidioPaymentConfig = JSON.stringify({ apiKey: 'demo-local', opcode: 'mint-token', paymentOptions: { allowLightning: true, allowEthereum: true, allowBitcoin: true, allowStacks: true }, paymentOption: 'bitcoin', paymentId: 'XqLKQxEAACQAYvsu', purchaseEndpoint: '/assets/buy-now', creditAttributes: {amountFiatPerCredit: 0.5, fiatCurrency: 'EUR', useCredits: true, start: 1, step: 2, min: 2, max: 20}})
+      // window.risidioPaymentConfig = JSON.stringify({ apiKey: 'demo-local', opcode: 'payment', paymentOption: 'ethereum', paymentId: 'XqLKQxEAACQAYvsu', purchaseEndpoint: '/assets/buy-now', creditAttributes: {amountFiatPerCredit: 0.5, fiatCurrency: 'EUR', useCredits: true, start: 1, step: 2, min: 2, max: 20}})
     </script>
     <lsat-entry msg="aint no sunshine!"></lsat-entry>
   </body>

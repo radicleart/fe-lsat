@@ -1,5 +1,13 @@
 <template>
-<b-card-group :class="(updatingCredits) ? 'updating-credits' : ''">
+<div class="vld-parent d-flex flex-column align-items-center" v-if="loading">
+    <loading :active.sync="loading"
+    :is-full-page="fullPage"></loading>
+  <div class="mt-3 rd-text d-flex flex-column align-items-center" style="">
+    {{waitingMessage}}
+  </div>
+</div>
+
+<b-card-group :class="(updatingCredits) ? 'updating-credits' : ''" v-else>
   <b-card header-tag="header" footer-tag="footer">
     <crypto-picker class="mb-1 d-flex justify-content-left" :paymentOption="paymentOption" @updatePaymentOption="updatePaymentOption" />
     <crypto-stepper  class="mb-3 d-flex justify-content-left" @updateCredits="updateCredits" />
@@ -14,8 +22,8 @@
           <b-button href="#" class="btn btn-dark border btn-lg text-warning" @click.prevent="enableMM()">Enable Meta Mask</b-button>
         </div>
       </div>
-      <b-card-text v-else class="mb-3" v-if="paying">
-        <loopbomb-spinner :message="message"/>
+      <b-card-text class="mb-3" v-if="paying">
+        <!-- <loopbomb-spinner :message="message"/> -->
       </b-card-text>
     </b-card-text>
     <b-card-text v-else class="mb-3">
@@ -43,7 +51,7 @@ import StacksPaymentAddress from './components/StacksPaymentAddress'
 import CryptoStepper from './components/CryptoStepper'
 import CryptoPicker from './components/CryptoPicker'
 import CryptoEquality from './components/CryptoEquality'
-import LoopbombSpinner from './components/LoopbombSpinner'
+import Loading from 'vue-loading-overlay'
 
 export default {
   name: 'Framework',
@@ -56,20 +64,27 @@ export default {
     CryptoPicker,
     CryptoEquality,
     CryptoCountdown,
-    LoopbombSpinner
+    Loading
   },
   data () {
     return {
-      paymentOption: 'lightning',
       numbCredits: 2,
       updatingCredits: false,
       timeout: false,
       enabling: false,
       message: null,
-      paying: false
+      paying: false,
+      paymentOption: null,
+      waitingMessage: 'Loading payment options...',
+      resizeTimer: null,
+      loading: true,
+      fullPage: true
     }
   },
   mounted () {
+    const configuration = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
+    this.paymentOption = configuration.paymentOption
+    this.loading = false
   },
   methods: {
     paymentEvent: function (data) {
@@ -96,40 +111,46 @@ export default {
     },
     evPaymentExpired () {
       const configuration = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
+      this.loading = true
       this.$store.dispatch('deleteExpiredPayment').then(() => {
         this.$store.dispatch('reinitialiseApp', configuration).then(() => {
-          // let the lsat-entry watcher on paymentChallenge handle updates.
+          this.loading = false
         })
       })
     },
     evTimeout () {
       this.timeout = true
+      const configuration = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
+      this.loading = true
+      this.$store.dispatch('deleteExpiredPayment').then(() => {
+        this.$store.dispatch('reinitialiseApp', configuration).then(() => {
+          this.loading = false
+          // let the lsat-entry watcher on paymentChallenge handle updates.
+        })
+      })
     },
     updatePaymentOption (paymentOption) {
+      const configuration = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
       this.paymentOption = paymentOption
+      configuration.paymentOption = paymentOption
+      this.$store.commit('addPaymentConfig', configuration)
       if (paymentOption === 'ethereum') {
         this.enableMM()
       }
     },
     updateCredits (credits) {
-      // const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
-      var resizeTimer
-      clearTimeout(resizeTimer)
+      clearTimeout(this.resizeTimer)
       const $self = this
       this.updatingCredits = true
-      resizeTimer = setTimeout(function () {
+      this.resizeTimer = setTimeout(function () {
         $self.$store.dispatch('updateAmount', { numbCredits: credits }).then(() => {
           // $self.$emit('paymentEvent', { opcode: 'lsat-payment-credits', numbCredits: credits, paymentId: paymentChallenge.paymentId })
           $self.updatingCredits = false
         })
-      }, 700)
+      }, 500)
     }
   },
   computed: {
-    paymentChallenge () {
-      const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
-      return paymentChallenge
-    }
   }
 }
 </script>

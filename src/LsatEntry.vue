@@ -186,7 +186,7 @@ export default {
     },
     token () {
       const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
-      return (paymentChallenge) ? paymentChallenge.lsatInvoice.token : {}
+      return (paymentChallenge && paymentChallenge.lsatInvoice) ? paymentChallenge.lsatInvoice.token : {}
     }
   }
 }

@@ -17,6 +17,8 @@
 </template>
 
 <script>
+import { LSAT_CONSTANTS } from '@/lsat-constants'
+
 export default {
   name: 'CryptoPicker',
   components: {
@@ -25,16 +27,18 @@ export default {
   data () {
     return {
       selected: null,
-      options: [
-        { text: 'Lightning', value: 'lightning' },
-        { text: 'Bitcoin', value: 'bitcoin' },
-        { text: 'Ether', value: 'ethereum' },
-        { text: 'Stacks', value: 'stacks' }
-      ]
+      options: null
+    }
+  },
+  watch: {
+    'paymentOption' () {
+      this.selected = this.paymentOption
     }
   },
   mounted () {
-    this.selected = this.paymentOption
+    const configuration = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
+    this.selected = configuration.paymentOption
+    this.options = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_OPTIONS]
   },
   methods: {
     changePayment (value) {

@@ -50,6 +50,16 @@ const lsatHelper = {
     if (stompClient) stompClient.disconnect()
   },
 
+  debugLsat (paymentChallenge, header) {
+    if (!paymentChallenge.lsatInvoice) {
+      console.log('no invoice present')
+    }
+    const lsat = Lsat.fromHeader(header)
+    console.log('lsat', lsat)
+    const macaroon = 'LSAT macaroon="' + paymentChallenge.lsatInvoice.token + '"'
+    const fullMac = macaroon + ', invoice="' + paymentChallenge.lsatInvoice.paymentRequest + '"'
+    console.log('fullMac', Lsat.fromHeader(fullMac))
+  },
   receivePayment (paymentChallenge) {
     return new Promise((resolve) => {
       const request = {
@@ -119,15 +129,7 @@ const lsatHelper = {
         .catch((error) => {
           if (error.response.status === 402) {
             const paymentChallenge = error.response.data
-            const header = error.response.headers['www-authenticate']
-            const lsat = Lsat.fromHeader(header)
-            console.log('lsat', lsat)
-
-            const macaroon = 'LSAT macaroon="' + paymentChallenge.lsatInvoice.token + '"'
-            const fullMac = macaroon + ', invoice="' + paymentChallenge.lsatInvoice.paymentRequest + '"'
-            console.log('fullMac', Lsat.fromHeader(fullMac))
-
-            store.commit('addPaymentChallenge', paymentChallenge)
+            // debugLsat(paymentChallenge, error.response.headers['www-authenticate'])
             resolve(paymentChallenge)
           } else {
             console.log('Problem calling endpoint ', error)
@@ -208,6 +210,9 @@ const lsatHelper = {
     })
   },
   lsatExpired (paymentChallenge) {
+    if (!paymentChallenge.lsatInvoice || !paymentChallenge.lsatInvoice.paymentHash) {
+      return false
+    }
     var expiry = paymentChallenge.lsatInvoice.timestamp * 1000 + 3600000
     const expired = moment(expiry).isBefore(moment({}))
     return expired
@@ -217,6 +222,13 @@ const lsatHelper = {
     return moment(expires).format('YYYY-MM-DD HH:mm')
   },
   lsatDuration (paymentChallenge) {
+    if (!paymentChallenge.lsatInvoice || !paymentChallenge.lsatInvoice.paymentHash) {
+      return {
+        hours: 0, // duration.asHours(),
+        minutes: 59,
+        seconds: 59
+      }
+    }
     var expires = moment(paymentChallenge.lsatInvoice.timestamp * 1000 + 3600000)
     var duration = moment.duration(expires.diff(moment({})))
     var timeout = {

@@ -7,6 +7,8 @@ export const LSAT_CONSTANTS = {
   KEY_PAYMENT_CHALLENGE: 'getPaymentChallenge',
   KEY_LSAT: 'getLsat',
   KEY_RETURN_STATE: 'getReturnState',
+  KEY_PAYMENT_OPTION_VALUE: 'getCurrentPaymentOption',
+  KEY_PAYMENT_OPTIONS: 'getPaymentOptions',
   KEY_PAYMENT_CHALLENGE_DURATION: 'getLsatDuration',
   KEY_PAYMENT_CHALLENGE_EXPIRES: 'getLsatExpires',
   KEY_PAYMENT_CHALLENGE_EXPIRED: 'getLsatExpired'
