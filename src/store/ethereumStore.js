@@ -1,11 +1,19 @@
 import Web3 from 'web3'
 import _ from 'lodash'
+// import abiContract from './LoopbombABIRemix.json'
+import abiContract from './LoopbombX.json'
 
 const NFT_CONTRACT_ADDRESS = process.env.VUE_APP_NFT_CONTRACT_ADDRESS
 const NETWORK = process.env.VUE_APP_NETWORK
 const OWNER_ADDRESS = process.env.VUE_APP_OWNER_ADDRESS
 
-const NFT_ABI = [{
+const getABI = function () {
+  console.log(abiContract)
+  // const NFT_ABI = JSON.parse(abiContract) // .toString()
+  return abiContract
+}
+/**
+const NFT_ABI1 = [{
   constant: false,
   inputs: [
     {
@@ -18,8 +26,22 @@ const NFT_ABI = [{
   payable: false,
   stateMutability: 'nonpayable',
   type: 'function'
+}, {
+  constant: true,
+  inputs: [],
+  name: 'baseTokenURI',
+  outputs: [
+    {
+      internalType: 'string',
+      name: '',
+      type: 'string'
+    }
+  ],
+  payable: false,
+  stateMutability: 'view',
+  type: 'function'
 }]
-
+**/
 const getWeb3 = function () {
   return new Promise((resolve, reject) => {
     const ethereum = window.ethereum
@@ -59,8 +81,39 @@ const sendPayment = function (web3, data, account, resolve, reject) {
 }
 
 const mintToken = function (web3, data, account, resolve, reject) {
-  const nftContract = new web3.eth.Contract(NFT_ABI, NFT_CONTRACT_ADDRESS, { gasLimit: '1000000' })
-  nftContract.methods.mintTo(account).send({ from: OWNER_ADDRESS }).then((res) => {
+  const abi = getABI()
+  const nftContract = new web3.eth.Contract(abi, NFT_CONTRACT_ADDRESS, { from: account, gasLimit: '1000000' })
+  nftContract.methods.getMintPrice().call({ from: account }).then((mintPrice) => {
+    nftContract.methods.create().send({ from: account, value: mintPrice }).then((res) => {
+      const result = {
+        assetHash: data.assetHash,
+        txId: res.transactionHash
+      }
+      if (res.events && _.size(res.events) > 0) {
+        for (var key in res.events) {
+          if (key === 'LoopbombCreated') {
+            const event = res.events[key]
+            result.tokenId = parseInt(event.returnValues.id, 10)
+          }
+          // if (event) {
+          //  result.tokenId = parseInt(event.raw.topics[3], 16)
+          //  result.logIndex = event.logIndex
+          // }
+        }
+      }
+      resolve(result)
+    }).catch((e) => {
+      resolveError(reject, e)
+    })
+  }).catch((e) => {
+    resolveError(reject, e)
+  })
+}
+
+const setBaseTokenURI = function (web3, data, account, resolve, reject) {
+  const abi = getABI()
+  const nftContract = new web3.eth.Contract(abi, NFT_CONTRACT_ADDRESS, { from: account, gasLimit: '1000000' })
+  nftContract.methods.setBaseTokenURI(data.baseTokenURI).send({ from: account }).then((res) => {
     const result = {
       assetHash: data.assetHash,
       txId: res.transactionHash
@@ -73,6 +126,53 @@ const mintToken = function (web3, data, account, resolve, reject) {
           result.logIndex = event.logIndex
         }
       }
+    }
+    resolve(result)
+  }).catch((e) => {
+    resolveError(reject, e)
+  })
+}
+
+const getContractData = function (web3, data, account, resolve, reject) {
+  const abi = getABI()
+  const nftContract = new web3.eth.Contract(abi, NFT_CONTRACT_ADDRESS, { gasPrice: 20000000000, from: account, gasLimit: '1000000' })
+  nftContract.methods.baseTokenURI().call({ from: account }).then((baseTokenURI) => {
+    const result = {
+      baseTokenURI: baseTokenURI
+    }
+    nftContract.methods.getMintPrice().call({ from: account }).then((mintPrice) => {
+      result.mintPrice = web3.utils.fromWei(String(mintPrice))
+      resolve(result)
+    }).catch((e) => {
+      reject(new Error(e))
+    })
+  }).catch((e) => {
+    reject(new Error(e))
+  })
+}
+
+const setMintPrice = function (web3, data, account, resolve, reject) {
+  const amountToSend = web3.utils.toWei(String(data.mintPrice), 'ether') // convert to wei value
+  const abi = getABI()
+  const nftContract = new web3.eth.Contract(abi, NFT_CONTRACT_ADDRESS, { from: account, gasLimit: '1000000' })
+  nftContract.methods.setMintPrice(amountToSend).send({ from: account }).then((res) => {
+    const result = {
+      assetHash: data.assetHash,
+      txId: res.transactionHash
+    }
+    resolve(result)
+  }).catch((e) => {
+    resolveError(reject, e)
+  })
+}
+
+const makeWithdrawal = function (web3, data, account, resolve, reject) {
+  const abi = getABI()
+  const nftContract = new web3.eth.Contract(abi, NFT_CONTRACT_ADDRESS, { from: account, gasLimit: '1000000' })
+  nftContract.methods.withdraw().send({ from: account }).then((res) => {
+    const result = {
+      assetHash: data.assetHash,
+      txId: res.transactionHash
     }
     resolve(result)
   }).catch((e) => {
@@ -105,6 +205,14 @@ const ethereumStore = {
                 sendPayment(web3, data, accounts[0], resolve, reject)
               } else if (data.opcode === 'mint-token') {
                 mintToken(web3, data, accounts[0], resolve, reject)
+              } else if (data.opcode === 'eth-set-base-token-uri') {
+                setBaseTokenURI(web3, data, accounts[0], resolve, reject)
+              } else if (data.opcode === 'eth-get-contract-data') {
+                getContractData(web3, data, accounts[0], resolve, reject)
+              } else if (data.opcode === 'eth-set-minting-fee') {
+                setMintPrice(web3, data, accounts[0], resolve, reject)
+              } else if (data.opcode === 'eth-make-withdrawal') {
+                makeWithdrawal(web3, data, accounts[0], resolve, reject)
               }
             }
           })

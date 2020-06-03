@@ -1,16 +1,19 @@
 <template>
 <div>
   <framework :key="componentKey" v-if="loaded && page === 'invoice'" @paymentEvent="paymentEvent($event)"/>
-  <div class="d-flex justify-content-center" v-else-if="page === 'result'" >
+  <div class="" v-else-if="page === 'result'" >
     <result-page :result="result" />
   </div>
-  <div class="d-flex justify-content-center" v-else-if="page === 'token'" >
+  <div class="" v-else-if="page === 'token'" >
     <token :token="token" @startOver="startOver"/>
   </div>
-  <div class="d-flex justify-content-center" v-else >
+  <div class="" v-else-if="page === 'administer-contract'" >
+    <administer-contract @doContinue="doContinue"/>
+  </div>
+  <div class="" v-else >
     <p v-html="message"></p>
   </div>
-  <div class="d-flex justify-content-center" v-if="showLsat" >
+  <div class="" v-if="showLsat" >
     <p v-html="paymentChallenge"></p>
   </div>
 </div>
@@ -23,9 +26,8 @@ import Notifications from 'vue-notification'
 import BootstrapVue from 'bootstrap-vue'
 import Token from './views/components/Token'
 import Framework from './views/Framework'
+import AdministerContract from './views/AdministerContract'
 import ResultPage from './views/ResultPage'
-// import '../node_modules/bootstrap/dist/css/bootstrap.min.css'
-// import '../node_modules/bootstrap-vue/dist/bootstrap-vue.css'
 import { LSAT_CONSTANTS } from './lsat-constants'
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { faEquals, faCopy, faAngleDoubleUp, faAngleDoubleDown } from '@fortawesome/free-solid-svg-icons'
@@ -48,7 +50,8 @@ export default {
   components: {
     Token,
     Framework,
-    ResultPage
+    ResultPage,
+    AdministerContract
   },
   props: ['paymentConfig'],
   data () {
@@ -89,6 +92,10 @@ export default {
     const paymentConfig = this.parseConfiguration()
     if (paymentConfig.opcode === 'mint-token') {
       this.mintToken(paymentConfig)
+    } else if (paymentConfig.opcode === 'mint-price') {
+      this.contractData()
+    } else if (paymentConfig.opcode === 'administer-contract') {
+      this.page = 'administer-contract'
     } else {
       if (paymentConfig.paymentId && this.paymentSent(paymentConfig)) {
         const data = { opcode: 'lsat-payment-confirmed' }
@@ -103,6 +110,19 @@ export default {
     this.$store.dispatch('stopListening')
   },
   methods: {
+    contractData: function () {
+      const config = { opcode: 'eth-get-contract-data' }
+      this.$store.dispatch('ethereumStore/transact', config).then((result) => {
+        this.loading = false
+        const paymentEvent = {
+          opcode: config.opcode,
+          contractData: result
+        }
+        this.$emit('paymentEvent', paymentEvent)
+      }).catch((e) => {
+        this.$emit('paymentEvent', { opcode: 'eth-error-contract-data' })
+      })
+    },
     mintToken: function (configuration) {
       // NB the config contains a paymentId which can be null for free sessions - status = 9 !
       const mintConfig = { opcode: 'mint-token', assetHash: configuration.assetHash }
@@ -117,6 +137,9 @@ export default {
         this.page = 'error'
         this.$emit('mintEvent', { opcode: 'eth-mint-error', message: e.message })
       })
+    },
+    doContinue: function () {
+      this.$emit('administerEvent', { opcode: 'administer-contract' })
     },
     parseConfiguration: function () {
       let paymentConfig = {}

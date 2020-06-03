@@ -74,6 +74,9 @@ body {
 
 .light-grey-section{ background-color: #f8f8f8; }
 
+.vld-parent {
+  margin: 45px 30px;
+}
 
 /**
 * Component Styling
@@ -103,10 +106,12 @@ button {
   border: 1pt solid #232323;
   border-radius: 15px;
  }
+ /**
 .card {
   background-color: #212121 !important;
   border: none;
 }
+**/
 .card-body {
   padding: 10px;
 }
@@ -119,6 +124,12 @@ footer {
   border-radius: 10px;
   text-align: center;
   width: 60px;
+  font-size: 1.1rem;
+}
+.rd-text {
+  color: #696969;
+  font-size: 1.2rem;
+  margin-top: 7px;
 }
 .rd-input {
   margin-left: 5px;

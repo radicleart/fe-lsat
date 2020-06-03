@@ -1,12 +1,5 @@
 <template>
-<div class="vld-parent d-flex flex-column align-items-center" v-if="loading">
-    <loading :active.sync="loading"
-    :is-full-page="fullPage"></loading>
-  <div class="mt-3 rd-text d-flex flex-column align-items-center" style="">
-    {{waitingMessage}}
-  </div>
-</div>
-
+<waiting-view v-if="loading" />
 <b-card-group :class="(updatingCredits) ? 'updating-credits' : ''" v-else>
   <b-card header-tag="header" footer-tag="footer">
     <crypto-picker class="mb-1 d-flex justify-content-left" :paymentOption="paymentOption" @updatePaymentOption="updatePaymentOption" />
@@ -51,7 +44,7 @@ import StacksPaymentAddress from './components/StacksPaymentAddress'
 import CryptoStepper from './components/CryptoStepper'
 import CryptoPicker from './components/CryptoPicker'
 import CryptoEquality from './components/CryptoEquality'
-import Loading from 'vue-loading-overlay'
+import WaitingView from './components/WaitingView'
 
 export default {
   name: 'Framework',
@@ -64,7 +57,7 @@ export default {
     CryptoPicker,
     CryptoEquality,
     CryptoCountdown,
-    Loading
+    WaitingView
   },
   data () {
     return {
