@@ -18,7 +18,7 @@ export default {
   props: {
     waitingMessage: {
       type: String,
-      default: 'Waiting for something to happen'
+      default: ''
     }
   },
   data () {
