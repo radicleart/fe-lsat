@@ -72,7 +72,7 @@ export default {
     this.fetchInfo()
     this.peerAddress = '178.79.138.62:10011'
     if (location.href.indexOf('local') > -1) {
-      this.peerAddress = 'localhost:10011'
+      this.peerAddress = '192.168.1.50:10011'
     }
   },
   methods: {

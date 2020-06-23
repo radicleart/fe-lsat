@@ -44,12 +44,16 @@ export default {
     },
     currentAmount () {
       const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
-      if (this.paymentOption === 'ethereum') {
-        return paymentChallenge.xchange.amountEth
-      } else if (this.paymentOption === 'stacks') {
-        return paymentChallenge.xchange.amountStx
+      if (paymentChallenge.xchange) {
+        if (this.paymentOption === 'ethereum') {
+          return paymentChallenge.xchange.amountEth
+        } else if (this.paymentOption === 'stacks') {
+          return paymentChallenge.xchange.amountStx
+        } else {
+          return paymentChallenge.xchange.amountBtc
+        }
       } else {
-        return paymentChallenge.xchange.amountBtc
+        return 0
       }
     }
   }
