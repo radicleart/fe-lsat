@@ -6,6 +6,7 @@ import {
   UserSession,
   decodeToken
 } from 'blockstack'
+import authStore from '@/store/authStore'
 
 Vue.use(Vuex)
 
@@ -94,9 +95,11 @@ const initPaymentChallenge = function (rateObject, creditAttributes) {
 
 export default new Vuex.Store({
   modules: {
-    ethereumStore: ethereumStore
+    ethereumStore: ethereumStore,
+    authStore: authStore
   },
   state: {
+    authStore: authStore,
     configuration: null,
     rateObject: null,
     settledInvoice: null,

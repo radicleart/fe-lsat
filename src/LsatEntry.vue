@@ -1,6 +1,12 @@
-<template>
-<div>
-  <framework :key="componentKey" v-if="loaded && page === 'invoice'" @paymentEvent="paymentEvent($event)"/>
+<template v-if="loaded">
+<div v-if="page === 'login'">
+  <b-nav-item>
+    <a v-if="!loggedIn" class="text-white" href="#" @click.prevent="loginBanter">Login</a>
+    <a v-else @click="logout()" href="#"><i class="fas fa-sign-out-alt"></i> Logout</a>
+  </b-nav-item>
+</div>
+<div v-else>
+  <framework :key="componentKey" v-if="page === 'invoice'" @paymentEvent="paymentEvent($event)"/>
   <div class="" v-else-if="page === 'result'" >
     <result-page :result="result" />
   </div>
@@ -92,8 +98,11 @@ export default {
     const paymentConfig = this.parseConfiguration()
     if (paymentConfig.opcode === 'mint-token') {
       this.mintToken(paymentConfig)
+    } else if (paymentConfig.opcode === 'login') {
+      this.page = 'login'
+      this.loaded = true
     } else if (paymentConfig.opcode === 'mint-price') {
-      this.contractData()
+      this.getEthContractData()
     } else if (paymentConfig.opcode === 'administer-contract') {
       this.page = 'administer-contract'
     } else {
@@ -110,7 +119,30 @@ export default {
     this.$store.dispatch('stopListening')
   },
   methods: {
-    contractData: function () {
+    loginBanter: function () {
+      this.$store.dispatch('authStore/startLogin')
+      this.$emit('login')
+      const $self = this
+      let counter = 0
+      const intval = setInterval(function () {
+        const myProfile = $self.$store.getters['authStore/getMyProfile']
+        if (myProfile.loggedIn) {
+          clearInterval(intval)
+        }
+        if (counter === 200) {
+          clearInterval(intval)
+        }
+        counter++
+      }, 1000)
+    },
+    logout () {
+      this.$store.dispatch('authStore/startLogout').then(() => {
+        localStorage.clear()
+        sessionStorage.clear()
+        this.$emit('logout')
+      })
+    },
+    getEthContractData: function () {
       const config = { opcode: 'eth-get-contract-data' }
       this.$store.dispatch('ethereumStore/transact', config).then((result) => {
         this.loading = false
@@ -206,6 +238,10 @@ export default {
     paymentChallenge () {
       const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
       return paymentChallenge
+    },
+    loggedIn () {
+      const myProfile = this.$store.getters['authStore/getMyProfile']
+      return myProfile.loggedIn
     },
     token () {
       const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
