@@ -1,18 +1,9 @@
 <template>
 <b-card-text>
-  <!--
-  <b-form-group class="text-warning">
-    <b-form-radio-group
-      v-model="selected"
-      :options="options"
-      @change="changePayment"
-      name="radio"
-    ></b-form-radio-group>
-  </b-form-group>
-  -->
-  <b-form-group class="text-warning">
-    <b-form-radio v-model="selected" @change="changePayment(option.value)" name="radio" :value="option.value" v-for="(option, index) in options" :key="index">{{option.text}}</b-form-radio>
-  </b-form-group>
+  <p>{{lookAndFeel.labels.card1Label}}</p>
+  <div v-for="(option, index) in options" :key="index">
+    <p class="mx-4 p-4 network" @click.prevent="changePayment(option.value)" :class="(paymentOption === option.value) ? 'chosen' : ''">{{option.text}}</p>
+  </div>
 </b-card-text>
 </template>
 
@@ -50,4 +41,17 @@ export default {
 }
 </script>
 <style lang="scss">
+.network {
+  background: #F5F5F5 0% 0% no-repeat padding-box;
+  border-radius: 11px;
+  opacity: 0.51;
+  padding: 10px;
+  cursor: pointer;
+  color: #000000;
+  font-weight: 700;
+}
+.chosen {
+  background: #F9B807 0% 0% no-repeat padding-box;
+}
+
 </style>

@@ -11,5 +11,6 @@ export const LSAT_CONSTANTS = {
   KEY_PAYMENT_OPTIONS: 'getPaymentOptions',
   KEY_PAYMENT_CHALLENGE_DURATION: 'getLsatDuration',
   KEY_PAYMENT_CHALLENGE_EXPIRES: 'getLsatExpires',
-  KEY_PAYMENT_CHALLENGE_EXPIRED: 'getLsatExpired'
+  KEY_PAYMENT_CHALLENGE_EXPIRED: 'getLsatExpired',
+  KEY_DISPLAY_CARD: 'getDisplayCard'
 }

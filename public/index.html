@@ -12,10 +12,49 @@
   <body>
     <noscript>You need javascript.</noscript>
     <script>
+      const lookAndFeel = {
+        labels: {
+          orderMsg: 'Your order for \'Satoshi Jokes\' will be delivered once payment is received, with thanks.',
+          title: 'Pay With',
+          subtitle: 'LSAT Pay',
+          card1Label: 'Select payment option',
+          card2Label1: 'How many Jokes do you require?',
+          card2Label2: 'Select operation',
+          card2Label3: 'Make Payment',
+          card2Label4: 'Open Channel',
+          button1Label: 'Back',
+          button2Label: 'Next',
+          quantityLabel: 'Jokes'
+        },
+        sections: {
+          stepper: true
+        },
+        cardStyle: {
+          margin: '0',
+          border: '1pt solid #232323',
+          'border-radius': '15px',
+          'font-family': '"Arial", sans-serif',
+        },
+        background: {
+          padding: '0px 0 0 0',
+          height: 'auto',
+          'max-width': '400px',
+          position: 'relative',
+          top: '0px',
+          'background-repeat': 'no-repeat',
+          'background-position': 'center center',
+          '-webkit-background-size': 'cover',
+          '-moz-background-size': 'cover',
+          '-o-background-size': 'cover',
+          'background-size': 'cover',
+          'background-color': '#fff',
+          opacity: 1
+        }
+      }
       // window.risidioPaymentConfig = JSON.stringify({ apiKey: 'demo-local', opcode: 'administer-contract', paymentOptions: { allowLightning: true, allowEthereum: true, allowBitcoin: true, allowStacks: true }, paymentOption: 'bitcoin', paymentId: 'XqLKQxEAACQAYvsu', purchaseEndpoint: '/assets/buy-now', creditAttributes: {amountFiatPerCredit: 0.5, fiatCurrency: 'EUR', useCredits: true, start: 1, step: 2, min: 2, max: 20}})
-      // window.risidioPaymentConfig = JSON.stringify({ apiKey: 'demo-local', opcode: 'mint-token', paymentOptions: { allowLightning: true, allowEthereum: true, allowBitcoin: true, allowStacks: true }, paymentOption: 'bitcoin', paymentId: 'XqLKQxEAACQAYvsu', purchaseEndpoint: '/assets/buy-now', creditAttributes: {amountFiatPerCredit: 0.5, fiatCurrency: 'EUR', useCredits: true, start: 1, step: 2, min: 2, max: 20}})
-      // window.risidioPaymentConfig = JSON.stringify({ apiKey: 'demo-local', opcode: 'payment', paymentOption: 'ethereum', paymentId: 'XqLKQxEAACQAYvsu', purchaseEndpoint: '/assets/buy-now', creditAttributes: {amountFiatPerCredit: 0.5, fiatCurrency: 'EUR', useCredits: true, start: 1, step: 2, min: 2, max: 20}})
-      window.risidioPaymentConfig = JSON.stringify({ apiKey: 'demo-local', opcode: 'login', paymentOption: 'ethereum', paymentId: 'XqLKQxEAACQAYvsu', purchaseEndpoint: '/assets/buy-now', creditAttributes: {amountFiatPerCredit: 0.5, fiatCurrency: 'EUR', useCredits: true, start: 1, step: 2, min: 2, max: 20}})
+      window.risidioPaymentConfig = JSON.stringify({ apiKey: 'demo-local', opcode: 'mint-token', paymentOptions: { allowLightning: true, allowEthereum: true, allowBitcoin: true, allowStacks: true }, paymentOption: 'bitcoin', paymentId: 'XqLKQxEAACQAYvsu', purchaseEndpoint: '/assets/buy-now', creditAttributes: {amountFiatPerCredit: 0.5, fiatCurrency: 'EUR', useCredits: true, start: 1, step: 2, min: 2, max: 20}})
+      // window.risidioPaymentConfig = JSON.stringify({ apiKey: 'demo-local', opcode: 'payment', paymentOption: 'lightning', paymentOptions: { allowLightning: true, allowEthereum: false, allowBitcoin: false, allowStacks: true }, paymentId: 'XqLKQxEAACQAYvsu', purchaseEndpoint: '/assets/buy-now', lookAndFeel: lookAndFeel, creditAttributes: {amountFiatPerCredit: 0.1, fiatCurrency: 'EUR', useCredits: true, start: 1, step: 1, min: 1, max: 20}})
+      // window.risidioPaymentConfig = JSON.stringify({ apiKey: 'demo-local', opcode: 'login', paymentOption: 'ethereum', paymentId: 'XqLKQxEAACQAYvsu', purchaseEndpoint: '/assets/buy-now', creditAttributes: {amountFiatPerCredit: 0.5, fiatCurrency: 'EUR', useCredits: true, start: 1, step: 2, min: 2, max: 20}})
     </script>
     <lsat-entry msg="aint no sunshine!"></lsat-entry>
   </body>

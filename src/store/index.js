@@ -107,6 +107,7 @@ export default new Vuex.Store({
     invoice: null,
     headers: null,
     paymentChallenge: null,
+    displayCard: 1,
     paymentOption: null,
     paymentOptions: []
   },
@@ -119,6 +120,9 @@ export default new Vuex.Store({
         paymentId: state.paymentChallenge.paymentId
       }
       return result
+    },
+    getDisplayCard: (state) => {
+      return state.displayCard
     },
     getCurrentPaymentOption: (state) => {
       return state.configuration.paymentOption
@@ -174,6 +178,9 @@ export default new Vuex.Store({
         localStorage.setItem('RADICLE_TUID', JSON.stringify(tuid))
       }
       state.tempUserId = true
+    },
+    setDisplayCard (state, val) {
+      state.displayCard = val
     },
     addPaymentChallenge (state, o) {
       if (!o) {

@@ -44,6 +44,10 @@
   color: red;
 }
 
+.text-black {
+  color: #000000;
+}
+
 ::placeholder {
   color: #999 !important;
   font-weight: 200;
@@ -127,7 +131,7 @@ footer {
   font-size: 1.1rem;
 }
 .rd-text {
-  color: #696969;
+  /* color: #696969; */
   font-size: 1.2rem;
   margin-top: 7px;
 }

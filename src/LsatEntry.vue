@@ -6,7 +6,10 @@
   </b-nav-item>
 </div>
 <div v-else>
-  <framework :key="componentKey" v-if="page === 'invoice'" @paymentEvent="paymentEvent($event)"/>
+  <div v-if="page === 'invoice'" :key="componentKey">
+    <framework-v2 v-if="lookAndFeel" :lookAndFeel="lookAndFeel" @paymentEvent="paymentEvent($event)"/>
+    <framework v-else @paymentEvent="paymentEvent($event)"/>
+  </div>
   <div class="" v-else-if="page === 'result'" >
     <result-page :result="result" />
   </div>
@@ -32,6 +35,7 @@ import Notifications from 'vue-notification'
 import BootstrapVue from 'bootstrap-vue'
 import Token from './views/components/Token'
 import Framework from './views/Framework'
+import FrameworkV2 from './views/FrameworkV2'
 import AdministerContract from './views/AdministerContract'
 import ResultPage from './views/ResultPage'
 import { LSAT_CONSTANTS } from './lsat-constants'
@@ -56,6 +60,7 @@ export default {
   components: {
     Token,
     Framework,
+    FrameworkV2,
     ResultPage,
     AdministerContract
   },
@@ -64,6 +69,7 @@ export default {
     return {
       page: 'waiting',
       result: null,
+      lookAndFeel: null,
       loaded: false,
       showLsat: false,
       componentKey: 0,
@@ -184,6 +190,9 @@ export default {
           paymentConfig = JSON.parse(window.risidioPaymentConfig)
         }
       }
+      if (paymentConfig.lookAndFeel) {
+        this.lookAndFeel = paymentConfig.lookAndFeel
+      }
       return paymentConfig
     },
     paymentSent: function (configuration) {
@@ -251,5 +260,5 @@ export default {
 }
 </script>
 <style lang="scss">
-@import "@/assets/scss/lsat-custom.scss";
+// @import "@/assets/scss/lsat-custom.scss";
 </style>

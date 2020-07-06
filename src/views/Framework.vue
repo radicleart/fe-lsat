@@ -3,8 +3,8 @@
 <b-card-group :class="(updatingCredits) ? 'updating-credits' : ''" v-else>
   <b-card header-tag="header" footer-tag="footer">
     <crypto-picker class="mb-1 d-flex justify-content-left" :paymentOption="paymentOption" @updatePaymentOption="updatePaymentOption" />
-    <crypto-stepper  class="mb-3 d-flex justify-content-left" @updateCredits="updateCredits" />
-    <crypto-equality class="mb-5 d-flex justify-content-left" :paymentOption="paymentOption"/>
+    <crypto-stepper class="mb-3 d-flex justify-content-left" @updateCredits="updateCredits" />
+    <crypto-equality class="mb-3 d-flex justify-content-left" :paymentOption="paymentOption"/>
     <crypto-countdown v-if="paymentOption !== 'ethereum'" class="mb-1 rd-text d-flex justify-content-center" @evPaymentExpired="evPaymentExpired" @evTimeout="evTimeout" />
     <b-card-text v-if="enabling" class="my-5 rd-text">
       <div class="container">

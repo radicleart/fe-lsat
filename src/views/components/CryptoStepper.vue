@@ -4,7 +4,7 @@
       <font-awesome-icon width="15px" height="15px" icon="angle-double-down" @click.prevent="countDown" class="fa-small text-info" style="cursor: pointer;"/>
       <input readonly="true" class="mx-3 bg-warning cd-input" @input="updateCredits($event)" id="input-horizontal1" v-model="localCredits" placeholder="$$$"/>
       <font-awesome-icon width="15px" height="15px" icon="angle-double-up" @click.prevent="countUp" class="fa-small  text-info mr-3" style="cursor: pointer;"/>
-      <span class="mr-2 rd-text">Spins</span>
+      <span class="mr-2 rd-text">{{quantityLabel}}</span>
     </div>
   </b-card-text>
 </template>
@@ -16,6 +16,7 @@ export default {
   name: 'CryptoStepper',
   components: {
   },
+  props: ['lookAndFeel'],
   data () {
     return {
       localCredits: 2
@@ -68,6 +69,13 @@ export default {
     }
   },
   computed: {
+    quantityLabel () {
+      let ql = 'Spins'
+      if (this.lookAndFeel && this.lookAndFeel.labels && this.lookAndFeel.labels.quantityLabel) {
+        ql = this.lookAndFeel.labels.quantityLabel
+      }
+      return ql
+    }
   }
 }
 </script>

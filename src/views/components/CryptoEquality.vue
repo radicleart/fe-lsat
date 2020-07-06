@@ -31,7 +31,7 @@ export default {
       } else if (this.paymentOption === 'stacks') {
         return '&#931;'
       } else {
-        return '&#x20BF;'
+        return '&#8383;'
       }
     },
     amountFiat () {
