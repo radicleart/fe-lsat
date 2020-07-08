@@ -14,7 +14,7 @@
     <script>
       const lookAndFeel = {
         labels: {
-          orderMsg: 'Your order for \'Satoshi Jokes\' will be delivered once payment is received, with thanks.',
+          orderMsg: 'Place order for \'Satoshi Jokes\' select number required and pay.',
           title: 'Pay With',
           subtitle: 'LSAT Pay',
           card1Label: 'Select payment option',
@@ -38,7 +38,7 @@
         background: {
           padding: '0px 0 0 0',
           height: 'auto',
-          'max-width': '400px',
+          'max-width': '500px',
           position: 'relative',
           top: '0px',
           'background-repeat': 'no-repeat',
@@ -51,10 +51,11 @@
           opacity: 1
         }
       }
-      // window.risidioPaymentConfig = JSON.stringify({ apiKey: 'demo-local', opcode: 'administer-contract', paymentOptions: { allowLightning: true, allowEthereum: true, allowBitcoin: true, allowStacks: true }, paymentOption: 'bitcoin', paymentId: 'XqLKQxEAACQAYvsu', purchaseEndpoint: '/assets/buy-now', creditAttributes: {amountFiatPerCredit: 0.5, fiatCurrency: 'EUR', useCredits: true, start: 1, step: 2, min: 2, max: 20}})
-      window.risidioPaymentConfig = JSON.stringify({ apiKey: 'demo-local', opcode: 'mint-token', paymentOptions: { allowLightning: true, allowEthereum: true, allowBitcoin: true, allowStacks: true }, paymentOption: 'bitcoin', paymentId: 'XqLKQxEAACQAYvsu', purchaseEndpoint: '/assets/buy-now', creditAttributes: {amountFiatPerCredit: 0.5, fiatCurrency: 'EUR', useCredits: true, start: 1, step: 2, min: 2, max: 20}})
-      // window.risidioPaymentConfig = JSON.stringify({ apiKey: 'demo-local', opcode: 'payment', paymentOption: 'lightning', paymentOptions: { allowLightning: true, allowEthereum: false, allowBitcoin: false, allowStacks: true }, paymentId: 'XqLKQxEAACQAYvsu', purchaseEndpoint: '/assets/buy-now', lookAndFeel: lookAndFeel, creditAttributes: {amountFiatPerCredit: 0.1, fiatCurrency: 'EUR', useCredits: true, start: 1, step: 1, min: 1, max: 20}})
-      // window.risidioPaymentConfig = JSON.stringify({ apiKey: 'demo-local', opcode: 'login', paymentOption: 'ethereum', paymentId: 'XqLKQxEAACQAYvsu', purchaseEndpoint: '/assets/buy-now', creditAttributes: {amountFiatPerCredit: 0.5, fiatCurrency: 'EUR', useCredits: true, start: 1, step: 2, min: 2, max: 20}})
+      // window.risidioPaymentConfig = JSON.stringify({ opcode: 'administer-contract', apiKey: 'demo-local', paymentOptions: { allowLightning: true, allowEthereum: true, allowBitcoin: true, allowStacks: true }, paymentOption: 'bitcoin', paymentId: 'XqLKQxEAACQAYvsu', purchaseEndpoint: '/assets/buy-now', creditAttributes: {amountFiatPerCredit: 0.5, fiatCurrency: 'EUR', useCredits: true, start: 1, step: 2, min: 2, max: 20}})
+      // window.risidioPaymentConfig = JSON.stringify({ opcode: 'mint-token', apiKey: 'demo-local', paymentOptions: { allowLightning: true, allowEthereum: true, allowBitcoin: true, allowStacks: true }, paymentOption: 'bitcoin', paymentId: 'XqLKQxEAACQAYvsu', purchaseEndpoint: '/assets/buy-now', creditAttributes: {amountFiatPerCredit: 0.5, fiatCurrency: 'EUR', useCredits: true, start: 1, step: 2, min: 2, max: 20}})
+      // window.risidioPaymentConfig = JSON.stringify({ opcode: 'payment', apiKey: 'demo-local', paymentOption: 'lightning', paymentOptions: { allowLightning: true, allowEthereum: false, allowBitcoin: false, allowStacks: true }, paymentId: 'XqLKQxEAACQAYvsu', purchaseEndpoint: '/assets/buy-now', lookAndFeel: lookAndFeel, creditAttributes: {amountFiatPerCredit: 0.1, fiatCurrency: 'EUR', useCredits: true, start: 1, step: 1, min: 1, max: 20}})
+      window.risidioPaymentConfig = JSON.stringify({ opcode: 'lsat-place-order', apiKey: 'demo-local', paymentOption: 'lightning', paymentOptions: { allowLightning: true, allowEthereum: false, allowBitcoin: false, allowStacks: true }, paymentId: 'XqLKQxEAACQAYvsu', purchaseEndpoint: '/assets/buy-now', lookAndFeel: lookAndFeel, creditAttributes: {amountFiatPerCredit: 0.1, fiatCurrency: 'EUR', useCredits: true, start: 1, step: 1, min: 1, max: 20}})
+      // window.risidioPaymentConfig = JSON.stringify({ opcode: 'login', apiKey: 'demo-local', paymentOption: 'ethereum', paymentId: 'XqLKQxEAACQAYvsu', purchaseEndpoint: '/assets/buy-now', creditAttributes: {amountFiatPerCredit: 0.5, fiatCurrency: 'EUR', useCredits: true, start: 1, step: 2, min: 2, max: 20}})
     </script>
     <lsat-entry msg="aint no sunshine!"></lsat-entry>
   </body>

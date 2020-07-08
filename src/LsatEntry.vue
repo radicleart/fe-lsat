@@ -112,6 +112,7 @@ export default {
     } else if (paymentConfig.opcode === 'administer-contract') {
       this.page = 'administer-contract'
     } else {
+      // check local storage for a valid token and notify caller if exists.
       if (paymentConfig.paymentId && this.paymentSent(paymentConfig)) {
         const data = { opcode: 'lsat-payment-confirmed' }
         const paymentEvent = this.$store.getters[LSAT_CONSTANTS.KEY_RETURN_STATE](data)
@@ -199,7 +200,7 @@ export default {
       const token = this.$store.getters[LSAT_CONSTANTS.KEY_TOKEN]
       if (token) {
         this.page = 'token'
-        const data = { opcode: 'lsat-payment-confirmed' }
+        const data = { opcode: 'lsat-payment-confirmed', token: token }
         const paymentEvent = this.$store.getters[LSAT_CONSTANTS.KEY_RETURN_STATE](data)
         this.$emit('paymentEvent', paymentEvent)
         return true
@@ -218,6 +219,7 @@ export default {
           this.$store.dispatch('startListening')
           this.page = 'invoice'
           this.loaded = true
+          this.$emit('paymentEvent', { opcode: 'lsat-payment-loaded' })
         }
       })
     },

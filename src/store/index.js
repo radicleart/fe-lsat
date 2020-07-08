@@ -107,7 +107,7 @@ export default new Vuex.Store({
     invoice: null,
     headers: null,
     paymentChallenge: null,
-    displayCard: 1,
+    displayCard: 0,
     paymentOption: null,
     paymentOptions: []
   },
@@ -115,6 +115,7 @@ export default new Vuex.Store({
     getReturnState: state => data => {
       const result = {
         opcode: data.opcode,
+        token: data.token,
         status: (data.status) ? data.status : state.paymentChallenge.status,
         numbCredits: state.paymentChallenge.xchange.numbCredits,
         paymentId: state.paymentChallenge.paymentId
@@ -233,6 +234,12 @@ export default new Vuex.Store({
         commit('addPaymentConfig', configuration)
         $self.dispatch('fetchRates').then(() => {
           commit('addPaymentChallenge', initPaymentChallenge(state.rateObject, state.configuration.creditAttributes))
+          if (configuration.opcode === 'lsat-place-order') {
+            configuration.opcode = 'payment'
+            commit('addPaymentConfig', configuration)
+            resolve({ tokenAcquired: false, resource: state.paymentChallenge })
+            return
+          }
           lsatHelper.checkPayment(state.paymentChallenge).then((paymentChallenge) => {
             commit('addPaymentChallenge', paymentChallenge)
             if (paymentChallenge.lsatInvoice && paymentChallenge.lsatInvoice.state === 'SETTLED' && paymentChallenge.lsatInvoice.preimage) {

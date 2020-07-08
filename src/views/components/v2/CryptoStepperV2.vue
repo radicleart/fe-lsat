@@ -11,11 +11,11 @@
       <div v-else>
         <div class="mb-3 w-75" style="white-space: nowrap;">
           <span class="symbol" v-html="currentSymbol"></span>
-          {{formattedFiat}} <input class="input2" readonly="true" id="input-horizontal2" :value="formattedFiat" placeholder="$$$"/>
+          <input class="input2" readonly="true" id="input-horizontal2" :value="currentAmount" placeholder="$$$"/>
         </div>
         <div class="mb-3 w-75" style="white-space: nowrap;">
           <span class="symbol" v-html="fiatSymbol"></span>
-          <input class="input2" readonly="true" id="input-horizontal3" :value="amountFiat" placeholder="$$$"/>
+          <input class="input2" readonly="true" id="input-horizontal3" :value="formattedFiat" placeholder="$$$"/>
         </div>
       </div>
     </div>
@@ -27,7 +27,7 @@ import { LSAT_CONSTANTS } from '@/lsat-constants'
 import WaitingView from '@/views/components/WaitingView'
 
 export default {
-  name: 'CryptoStepper',
+  name: 'CryptoStepperV2',
   components: {
     WaitingView
   },
@@ -112,7 +112,7 @@ export default {
         currency: 'EUR'
       })
       const ffiat = formatter.formatToParts(amount) /* $2,500.00 */
-      return ffiat[1] + '.' + ffiat[3]
+      return ffiat[1].value + '.' + ffiat[3].value
     },
     fiatSymbol () {
       const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]

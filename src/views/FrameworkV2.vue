@@ -8,15 +8,19 @@
       <h1 class="mb-2">{{lookAndFeel.labels.title}}</h1>
       <h2 class="mb-0">{{lookAndFeel.labels.subtitle}}</h2>
     </template>
-    <div  v-if="displayCard === 1">
+    <div v-if="displayCard === 0">
+      <div class="my-5 mx-auto w-100" v-html="lookAndFeel.labels.orderMsg"></div>
+      <crypto-stepper-v2 v-if="showStepper" class="mb-3 d-flex justify-content-left" :paymentOption="paymentOption" :lookAndFeel="lookAndFeel" @updateCredits="updateCredits" />
+    </div>
+    <div  v-if="displayCard === -1">
       <crypto-picker :lookAndFeel="lookAndFeel" :paymentOption="paymentOption" @updatePaymentOption="updatePaymentOption" />
-      <div class="mx-auto w-75">{{lookAndFeel.labels.orderMsg}}</div>
+      <div class="mx-auto w-75">{{lookAndFeel.labels.networkMsg}}</div>
     </div>
-    <div  v-if="displayCard === 2">
+    <div  v-if="displayCard === -2">
       <crypto-stepper v-if="showStepper" class="mb-3 d-flex justify-content-left" :paymentOption="paymentOption" :lookAndFeel="lookAndFeel" @updateCredits="updateCredits" />
-      <div class="mx-auto w-75">{{lookAndFeel.labels.orderMsg}}</div>
+      <div class="mx-auto w-75">{{lookAndFeel.labels.quantityMsg}}</div>
     </div>
-    <div  v-if="displayCard === 3">
+    <div  v-if="displayCard === 1">
       <crypto-countdown v-if="paymentOption !== 'ethereum'" class="mb-1 rd-text d-flex justify-content-end" @evPaymentExpired="evPaymentExpired" @evTimeout="evTimeout" />
       <b-card-text v-if="enabling">
         <div class="container">
@@ -58,7 +62,7 @@
 <script>
 import { LSAT_CONSTANTS } from '@/lsat-constants'
 import CryptoPicker from './components/v2/CryptoPicker'
-import CryptoStepper from './components/v2/CryptoStepper'
+import CryptoStepperV2 from './components/v2/CryptoStepperV2'
 import LightningPaymentAddressV2 from './components/v2/LightningPaymentAddressV2'
 
 import CryptoCountdown from './components/CryptoCountdown'
@@ -74,7 +78,7 @@ export default {
     BitcoinPaymentAddress,
     StacksPaymentAddress,
     EthereumPaymentAddress,
-    CryptoStepper,
+    CryptoStepperV2,
     CryptoPicker,
     CryptoCountdown,
     WaitingView
@@ -99,9 +103,8 @@ export default {
   mounted () {
     const configuration = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
     this.paymentOption = configuration.paymentOption
-    const options = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_OPTIONS]
-    if (options.length < 2) {
-      this.$store.commit('setDisplayCard', 2)
+    if (configuration.opcode === 'lsat-place-order') {
+      this.$store.commit('setDisplayCard', 0)
     }
     this.loading = false
   },
@@ -123,16 +126,25 @@ export default {
     next () {
       let displayCard = this.$store.getters[LSAT_CONSTANTS.KEY_DISPLAY_CARD]
       displayCard++
-      if (displayCard > 3) {
-        displayCard = 1
+      if (displayCard > 1) {
+        displayCard = 0
       }
-      this.$store.commit('setDisplayCard', displayCard)
+      if (displayCard === 1) {
+        const configuration = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
+        this.$store.dispatch('reinitialiseApp', configuration).then((paymentChallenge) => {
+          this.$store.commit('setDisplayCard', displayCard)
+          this.$emit('paymentEvent', { opcode: 'lsat-payment-begun1', paymentChallenge: paymentChallenge })
+          this.loading = false
+        })
+      } else {
+        this.$store.commit('setDisplayCard', displayCard)
+      }
     },
     prev () {
       let displayCard = this.$store.getters[LSAT_CONSTANTS.KEY_DISPLAY_CARD]
       displayCard--
-      if (displayCard < 1) {
-        displayCard = 1
+      if (displayCard < 0) {
+        displayCard = 0
       }
       this.$store.commit('setDisplayCard', displayCard)
     },
@@ -174,14 +186,16 @@ export default {
       }
     },
     updateCredits (credits) {
+      const configuration = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
       clearTimeout(this.resizeTimer)
       const $self = this
       this.updatingCredits = true
       this.resizeTimer = setTimeout(function () {
         $self.$store.dispatch('updateAmount', { numbCredits: credits }).then(() => {
-          $self.$store.commit('setDisplayCard', 2)
+          $self.$store.commit('setDisplayCard', 0)
           $self.updatingCredits = false
           $self.componentKey++
+          $self.$emit('paymentEvent', { opcode: 'lsat-payment-credits', numbCredits: credits, paymentId: configuration.paymentChallenge })
         })
       }, 500)
     }
@@ -196,8 +210,10 @@ export default {
     button2Label () {
       const displayCard = this.$store.getters[LSAT_CONSTANTS.KEY_DISPLAY_CARD]
       let label = this.lookAndFeel.labels.button2Label
-      if (displayCard === 3) {
+      if (displayCard === 1) {
         label = 'Cancel'
+      } else if (displayCard === 0) {
+        label = 'Place Order'
       }
       return label
     },
@@ -207,7 +223,7 @@ export default {
     },
     showBack () {
       const displayCard = this.$store.getters[LSAT_CONSTANTS.KEY_DISPLAY_CARD]
-      return displayCard > 1
+      return displayCard > 0
     }
   }
 }
