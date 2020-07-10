@@ -11,7 +11,7 @@
     <framework v-else @paymentEvent="paymentEvent($event)"/>
   </div>
   <div class="" v-else-if="page === 'result'" >
-    <result-page :result="result" />
+    <result-page :lookAndFeel="lookAndFeel" :result="result" />
   </div>
   <div class="" v-else-if="page === 'token'" >
     <token :token="token" @startOver="startOver"/>
@@ -90,6 +90,7 @@ export default {
         const data = { opcode: 'lsat-payment-confirmed', status: paymentChallenge.status }
         const paymentEvent = this.$store.getters[LSAT_CONSTANTS.KEY_RETURN_STATE](data)
         this.$emit('paymentEvent', paymentEvent)
+        console.log('paymentEvent', paymentEvent)
         this.waitingMessage = 'Thanks for paying - we sure hope you enjoy loopbomb!'
         this.result = data
         this.page = 'result'
@@ -97,6 +98,16 @@ export default {
         const data = { opcode: 'lsat-payment-begun', status: paymentChallenge.status }
         const paymentEvent = this.$store.getters[LSAT_CONSTANTS.KEY_RETURN_STATE](data)
         this.$emit('paymentEvent', paymentEvent)
+        console.log('paymentEvent', paymentEvent)
+      } else {
+        const data = {
+          opcode: 'lsat-status-change',
+          status: paymentChallenge.status,
+          orderCode: paymentChallenge.paymentId,
+          token: (paymentChallenge.lsatInvoice) ? paymentChallenge.lsatInvoice.token : null
+        }
+        this.$emit('paymentEvent', data)
+        console.log('paymentEvent', data)
       }
     }
   },
@@ -117,6 +128,7 @@ export default {
         const data = { opcode: 'lsat-payment-confirmed' }
         const paymentEvent = this.$store.getters[LSAT_CONSTANTS.KEY_RETURN_STATE](data)
         this.$emit('paymentEvent', paymentEvent)
+        console.log('paymentEvent', paymentEvent)
       } else {
         this.initialiseApp(paymentConfig)
       }
@@ -158,8 +170,10 @@ export default {
           contractData: result
         }
         this.$emit('paymentEvent', paymentEvent)
+        console.log('paymentEvent', paymentEvent)
       }).catch((e) => {
         this.$emit('paymentEvent', { opcode: 'eth-error-contract-data' })
+        console.log('paymentEvent', { opcode: 'eth-error-contract-data' })
       })
     },
     mintToken: function (configuration) {
@@ -203,6 +217,7 @@ export default {
         const data = { opcode: 'lsat-payment-confirmed', token: token }
         const paymentEvent = this.$store.getters[LSAT_CONSTANTS.KEY_RETURN_STATE](data)
         this.$emit('paymentEvent', paymentEvent)
+        console.log('paymentEvent', paymentEvent)
         return true
       }
     },
@@ -215,16 +230,18 @@ export default {
           const data = { opcode: 'lsat-payment-confirmed' }
           const paymentEvent = this.$store.getters[LSAT_CONSTANTS.KEY_RETURN_STATE](data)
           this.$emit('paymentEvent', paymentEvent)
+          console.log('paymentEvent', data)
         } else {
           this.$store.dispatch('startListening')
           this.page = 'invoice'
           this.loaded = true
           this.$emit('paymentEvent', { opcode: 'lsat-payment-loaded' })
+          console.log('paymentEvent', { opcode: 'lsat-payment-loaded' })
         }
       })
     },
     paymentEvent: function (data) {
-      if (data.opcode === 'payment-expired') {
+      if (data.opcode === 'lsat-payment-expired') {
         this.paymentExpired()
       } else if (data.opcode === 'lsat-payment-credits') {
         this.page = 'invoice'
@@ -234,6 +251,7 @@ export default {
         this.result = data
       }
       this.$emit('paymentEvent', data)
+      console.log('paymentEvent', data)
     },
     paymentExpired () {
       this.$store.dispatch('fetchRates')

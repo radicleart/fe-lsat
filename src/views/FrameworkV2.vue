@@ -48,8 +48,8 @@
       </b-card-text>
     </div>
     <template v-slot:footer>
-      <div class="text-center d-flex justify-content-between">
-        <button :class="(showBack) ? 'b-prev' : ''"><span v-show="showBack" @click="prev">{{lookAndFeel.labels.button1Label}}</span></button>
+      <div class="text-center d-flex justify-content-end">
+        <button v-if="showBack" :class="(showBack) ? 'b-prev' : ''"><span @click="prev">{{lookAndFeel.labels.button1Label}}</span></button>
         <button class="b-next" @click="next">{{button2Label}}</button>
       </div>
     </template>
@@ -223,7 +223,7 @@ export default {
     },
     showBack () {
       const displayCard = this.$store.getters[LSAT_CONSTANTS.KEY_DISPLAY_CARD]
-      return displayCard > 0
+      return displayCard > 1
     }
   }
 }

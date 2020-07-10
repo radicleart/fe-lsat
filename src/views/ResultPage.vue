@@ -1,10 +1,19 @@
 <template>
-<b-card-group class="text-warning">
-  <b-card header-tag="header" footer-tag="footer">
+<b-card-group :style="lookAndFeel.cardStyle">
+  <b-card header-tag="header" footer-tag="footer" :style="lookAndFeel.background">
+    <template v-slot:header>
+      <h1 class="mb-2">{{lookAndFeel.labels.title}}</h1>
+      <h2 class="mb-0">{{lookAndFeel.labels.subtitle}}</h2>
+    </template>
     <b-card-text class="d-flex justify-content-center" v-if="result.opcode.startsWith('eth-')">
       <p v-html="result.message"></p>
       <p v-if="result.opcode === 'eth-payment-confirmed'"><a :href="etherScanUrl">view transaction on etherscan.</a></p>
     </b-card-text>
+    <template v-slot:footer>
+      <div class="text-center d-flex justify-content-end">
+        <button class="b-next">Back</button>
+      </div>
+    </template>
   </b-card>
 </b-card-group>
 </template>
@@ -16,7 +25,7 @@ export default {
   name: 'ResultPage',
   components: {
   },
-  props: ['result'],
+  props: ['lookAndFeel', 'result'],
   data () {
     return {
     }

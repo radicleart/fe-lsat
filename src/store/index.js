@@ -115,10 +115,13 @@ export default new Vuex.Store({
     getReturnState: state => data => {
       const result = {
         opcode: data.opcode,
-        token: data.token,
+        token: (data.token) ? data.token : state.paymentChallenge.lsatInvoice.token,
         status: (data.status) ? data.status : state.paymentChallenge.status,
         numbCredits: state.paymentChallenge.xchange.numbCredits,
         paymentId: state.paymentChallenge.paymentId
+      }
+      if (data.opcode === 'lsat-payment-confirmed') {
+        result.lsat = lsatHelper.lsat
       }
       return result
     },
@@ -253,6 +256,10 @@ export default new Vuex.Store({
               commit('addPaymentChallenge', paymentChallenge)
               lsatHelper.challenge(paymentChallenge, configuration).then((lsatEnabledPC) => {
                 commit('addPaymentOptions')
+                if (lsatEnabledPC.paymentId && lsatEnabledPC.paymentId !== 'null') {
+                  lsatHelper.startListening(lsatEnabledPC.paymentId)
+                  commit('addPaymentChallenge', lsatEnabledPC)
+                }
                 if (lsatEnabledPC) {
                   commit('addPaymentChallenge', lsatEnabledPC)
                 }
@@ -293,8 +300,10 @@ export default new Vuex.Store({
         })
       })
     },
-    startListening ({ state, getters }) {
-      lsatHelper.startListening(state.paymentChallenge.paymentId)
+    startListening ({ state }) {
+      if (state.paymentChallenge.paymentId && state.paymentChallenge.paymentId !== 'null') {
+        lsatHelper.startListening(state.paymentChallenge.paymentId)
+      }
     },
     stopListening ({ commit }) {
       lsatHelper.stopListening()

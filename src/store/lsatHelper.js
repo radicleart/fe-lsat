@@ -53,12 +53,14 @@ const lsatHelper = {
   debugLsat (paymentChallenge, header) {
     if (!paymentChallenge.lsatInvoice) {
       console.log('no invoice present')
+      return null
     }
     const lsat = Lsat.fromHeader(header)
     console.log('lsat', lsat)
     const macaroon = 'LSAT macaroon="' + paymentChallenge.lsatInvoice.token + '"'
     const fullMac = macaroon + ', invoice="' + paymentChallenge.lsatInvoice.paymentRequest + '"'
     console.log('fullMac', Lsat.fromHeader(fullMac))
+    return Lsat.fromHeader(fullMac)
   },
   receivePayment (paymentChallenge) {
     return new Promise((resolve) => {
@@ -129,7 +131,7 @@ const lsatHelper = {
         .catch((error) => {
           if (error.response.status === 402) {
             const paymentChallenge = error.response.data
-            // debugLsat(paymentChallenge, error.response.headers['www-authenticate'])
+            paymentChallenge.lsat = lsatHelper.debugLsat(paymentChallenge, error.response.headers['www-authenticate'])
             resolve(paymentChallenge)
           } else {
             console.log('Problem calling endpoint ', error)

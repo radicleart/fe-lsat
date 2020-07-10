@@ -1,8 +1,9 @@
 <template>
 <div>
-  <div class="row">
-    <div class="scan-text">Sending: <b>{{paymentAmountSat}} satoshis</b></div>
-    <div class="scan-text" style="margin: 0 0 15px 65px;">({{paymentAmountBtc}} btc)</div>
+  <div class="mb-3 row">
+    <div class="col-11">
+      <div>Sending: <b>{{paymentAmountSat}} satoshis</b> ({{paymentAmountBtc}} btc)</div>
+    </div>
   </div>
   <div>
     <div title="Make Payment" v-if="payment">
@@ -132,8 +133,8 @@ export default {
 </script>
 <style >
 canvas {
-  max-width: 220px;
-  max-height: 220px;
+  max-width: 350px;
+  max-height: 350px;
   border: 1pt solid #333;
 }
 .input2 {

@@ -1,15 +1,13 @@
 <template>
-  <b-card-text>
     <div v-if="expired" class="rd-text my-5 py-5 text-center">
       Timeout - <a href="#" @click.prevent="evPaymentExpired">please start again</a>
     </div>
     <div v-else>
-      <div>
+      <div class="text-info" style="font-size: 0.8em;">
         <small>{{currentCountdown}}</small>
       </div>
       <div v-if="showExpires">Expires {{expires()}}</div>
     </div>
-  </b-card-text>
 </template>
 
 <script>
