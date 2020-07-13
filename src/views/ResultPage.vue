@@ -1,5 +1,5 @@
 <template>
-<b-card-group :style="lookAndFeel.cardStyle">
+<b-card-group :style="cardStyle">
   <b-card header-tag="header" footer-tag="footer" :style="lookAndFeel.background">
     <template v-slot:header>
       <h1 class="mb-2">{{lookAndFeel.labels.title}}</h1>
@@ -37,6 +37,9 @@ export default {
   computed: {
     etherScanUrl () {
       return EXPLORER + '/tx/' + this.result.txId
+    },
+    cardStyle () {
+      return (this.lookAndFeel) ? this.lookAndFeel.cardStyle : ''
     }
   }
 }
