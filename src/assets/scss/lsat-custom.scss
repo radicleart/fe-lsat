@@ -1,50 +1,19 @@
 @import 'my_variables.scss';
 @import 'node_modules/bootstrap/scss/bootstrap';
 
-@font-face {
-    font-family: "Roboto";
-    src: url("/fonts/Roboto/Roboto-Light.ttf") format('truetype');
-    font-weight: 100;
-    font-style: normal;
-}
-
-@font-face {
-    font-family: "Roboto";
-    src: url("/fonts/Roboto/Roboto-Regular.ttf") format('truetype');
-    font-weight: 300;
-    font-style: normal;
-}
-
-/* Roboto italic */
-
-@font-face {
-    font-family: "Roboto";
-    src: url('/fonts/Roboto/Roboto-Medium.ttf') format('truetype');
-    font-weight: 400;
-    font-style: italic;
-}
-
-/* Roboto bold */
-
-@font-face {
-    font-family: "Roboto";
-    src: url('/fonts/Roboto/Roboto-Bold.ttf') format('truetype');
-    font-weight: 700;
-    font-style: normal;
-}
 body {
   margin: 0;
   font-weight: 300;
   min-height: 100vh;
   background-color: #232323;
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Montserrat', sans-serif;
 }
 
 .card-group {
   margin: 10px 10px 10px 10px;
   border: 1pt solid #232323;
   border-radius: 15px;
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Montserrat', sans-serif;
  }
 .card {
   background-color: #212121 !important;
