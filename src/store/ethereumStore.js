@@ -151,6 +151,19 @@ const getContractData = function (web3, data, account, resolve, reject) {
   })
 }
 
+const totalSupply = function (web3, account, resolve, reject) {
+  const abi = getABI()
+  const nftContract = new web3.eth.Contract(abi, NFT_CONTRACT_ADDRESS, { gasPrice: 20000000000, from: account, gasLimit: '1000000' })
+  nftContract.methods.totalSupply().call({ from: account }).then((totalSupply) => {
+    const result = {
+      totalSupply: totalSupply
+    }
+    resolve(result)
+  }).catch((e) => {
+    reject(new Error(e))
+  })
+}
+
 const setMintPrice = function (web3, data, account, resolve, reject) {
   const amountToSend = web3.utils.toWei(String(data.mintPrice), 'ether') // convert to wei value
   const abi = getABI()
@@ -207,6 +220,8 @@ const ethereumStore = {
                 mintToken(web3, data, accounts[0], resolve, reject)
               } else if (data.opcode === 'eth-set-base-token-uri') {
                 setBaseTokenURI(web3, data, accounts[0], resolve, reject)
+              } else if (data.opcode === 'eth-get-total-supply') {
+                totalSupply(web3, accounts[0], resolve, reject)
               } else if (data.opcode === 'eth-get-contract-data') {
                 getContractData(web3, data, accounts[0], resolve, reject)
               } else if (data.opcode === 'eth-set-minting-fee') {

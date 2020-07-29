@@ -1,10 +1,8 @@
 <template v-if="loaded">
-<div v-if="page === 'login'">
-  <b-nav-item>
-    <a v-if="!loggedIn" class="text-white" href="#" @click.prevent="loginBanter">Login</a>
-    <a v-else @click="logout()" href="#"><i class="fas fa-sign-out-alt"></i> Logout</a>
-  </b-nav-item>
-</div>
+<span v-if="page === 'login'">
+    <a v-if="!loggedIn" :style="loginStyles" href="#" @click.prevent="loginBanter">Login</a>
+    <a v-else @click="logout()" :style="loginStyles" href="#"><i class="fas fa-sign-out-alt"></i> Logout</a>
+</span>
 <div v-else>
   <div v-if="page === 'invoice'" :key="componentKey">
     <framework-v2 v-if="lookAndFeel" :lookAndFeel="lookAndFeel" @paymentEvent="paymentEvent($event)"/>
@@ -113,6 +111,7 @@ export default {
   },
   mounted () {
     const paymentConfig = this.parseConfiguration()
+    this.lookAndFeel = paymentConfig.lookAndFeel
     if (paymentConfig.opcode === 'mint-token') {
       this.mintToken(paymentConfig)
     } else if (paymentConfig.opcode === 'login') {
@@ -177,20 +176,57 @@ export default {
       })
     },
     mintToken: function (configuration) {
-      // NB the config contains a paymentId which can be null for free sessions - status = 9 !
       const mintConfig = { opcode: 'mint-token', assetHash: configuration.assetHash }
       this.message = 'Minting non fungible token - takes a minute or so..'
-      this.$store.dispatch('ethereumStore/transact', mintConfig).then((result) => {
-        this.page = 'result'
-        result.opcode = 'eth-mint-confirmed'
-        this.$emit('mintEvent', result)
-        this.result = result
+      this.$store.dispatch('ethereumStore/transact', { opcode: 'eth-get-total-supply' }).then((result) => {
+        this.loading = false
+        const data = {
+          opcode: 'eth-get-total-supply',
+          totalSupply: result.totalSupply
+        }
+        this.$emit('mintEvent', data)
+        this.$store.dispatch('ethereumStore/transact', mintConfig).then((result) => {
+          this.page = 'result'
+          result.opcode = 'eth-mint-confirmed'
+          this.$emit('mintEvent', result)
+          this.result = result
+        }).catch((e) => {
+          this.message = e.message
+          this.page = 'error'
+          this.$emit('mintEvent', { opcode: 'eth-mint-error', message: e.message })
+        })
       }).catch((e) => {
-        this.message = e.message
-        this.page = 'error'
-        this.$emit('mintEvent', { opcode: 'eth-mint-error', message: e.message })
+        this.$emit('paymentEvent', { opcode: 'eth-error-contract-data' })
+        console.log('paymentEvent', { opcode: 'eth-error-contract-data' })
       })
     },
+    /**
+    mintToken: function (configuration) {
+      const mintConfig = { opcode: 'mint-token', assetHash: configuration.assetHash }
+      this.message = 'Minting non fungible token - takes a minute or so..'
+      this.$store.dispatch('ethereumStore/transact', { opcode: 'eth-get-total-supply' }).then((result) => {
+        this.loading = false
+        const data = {
+          opcode: 'eth-get-total-supply',
+          totalSupply: result.totalSupply
+        }
+        this.$emit('mintEvent', data)
+        this.$store.dispatch('ethereumStore/transact', mintConfig).then((result) => {
+          this.page = 'result'
+          result.opcode = 'eth-mint-confirmed'
+          this.$emit('mintEvent', result)
+          this.result = result
+        }).catch((e) => {
+          this.message = e.message
+          this.page = 'error'
+          this.$emit('mintEvent', { opcode: 'eth-mint-error', message: e.message })
+        })
+      }).catch((e) => {
+        this.$emit('paymentEvent', { opcode: 'eth-error-contract-data' })
+        console.log('paymentEvent', { opcode: 'eth-error-contract-data' })
+      })
+    },
+    **/
     doContinue: function () {
       this.$emit('administerEvent', { opcode: 'administer-contract' })
     },
@@ -264,6 +300,9 @@ export default {
     }
   },
   computed: {
+    loginStyles () {
+      return (this.lookAndFeel) ? this.lookAndFeel.loginStyles : ''
+    },
     paymentChallenge () {
       const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
       return paymentChallenge

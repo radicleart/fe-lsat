@@ -3,7 +3,7 @@
 <div class="d-flex justify-content-center" v-else>
 <div class="mx-auto my-5">
 <b-card-group :class="(updatingCredits) ? 'updating-credits' : ''" :key="componentKey" :style="lookAndFeel.cardStyle">
-  <b-card header-tag="header" footer-tag="footer" :style="lookAndFeel.background">
+  <b-card header-tag="header" footer-tag="footer" :style="background">
     <template v-slot:header>
       <h1 class="mb-2">{{lookAndFeel.labels.title}}</h1>
       <h2 class="mb-0">{{lookAndFeel.labels.subtitle}}</h2>
@@ -206,6 +206,9 @@ export default {
         return this.lookAndFeel.sections.stepper
       }
       return true
+    },
+    background () {
+      return (this.lookAndFeel) ? this.lookAndFeel.background : ''
     },
     button2Label () {
       const displayCard = this.$store.getters[LSAT_CONSTANTS.KEY_DISPLAY_CARD]

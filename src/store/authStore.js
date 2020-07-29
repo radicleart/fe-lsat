@@ -1,5 +1,5 @@
 import store from '@/store'
-import { authenticate } from '@blockstack/connect'
+import { authenticate, showBlockstackConnect } from '@blockstack/connect'
 import {
   Person,
   UserSession,
@@ -163,7 +163,7 @@ const authStore = {
     startLogin ({ state, commit }) {
       return new Promise(resolve => {
         if (BLOCKSTACK_LOGIN === 1) {
-          window.blockstackConnect.showBlockstackConnect(authOptions)
+          showBlockstackConnect(authOptions)
         } else if (BLOCKSTACK_LOGIN === 2) {
           authenticate(authOptions)
         } else {
