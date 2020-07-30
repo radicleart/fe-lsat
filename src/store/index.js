@@ -256,12 +256,12 @@ export default new Vuex.Store({
               commit('addPaymentChallenge', paymentChallenge)
               lsatHelper.challenge(paymentChallenge, configuration).then((lsatEnabledPC) => {
                 commit('addPaymentOptions')
-                if (lsatEnabledPC.paymentId && lsatEnabledPC.paymentId !== 'null') {
-                  lsatHelper.startListening(lsatEnabledPC.paymentId)
-                  commit('addPaymentChallenge', lsatEnabledPC)
-                }
                 if (lsatEnabledPC) {
                   commit('addPaymentChallenge', lsatEnabledPC)
+                  if (lsatEnabledPC.paymentId && lsatEnabledPC.paymentId !== 'null') {
+                    lsatHelper.startListening(lsatEnabledPC.paymentId)
+                    commit('addPaymentChallenge', lsatEnabledPC)
+                  }
                 }
                 resolve({ tokenAcquired: false, resource: state.paymentChallenge })
               })
@@ -296,7 +296,7 @@ export default new Vuex.Store({
       return new Promise((resolve, reject) => {
         lsatHelper.fetchRates().then((rateObject) => {
           commit('addRateObject', rateObject)
-          resolve()
+          resolve(rateObject)
         })
       })
     },

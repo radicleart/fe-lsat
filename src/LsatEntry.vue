@@ -112,6 +112,9 @@ export default {
   mounted () {
     const paymentConfig = this.parseConfiguration()
     this.lookAndFeel = paymentConfig.lookAndFeel
+    if (paymentConfig.ratesWatch) {
+      this.ratesWatch(paymentConfig)
+    }
     if (paymentConfig.opcode === 'mint-token') {
       this.mintToken(paymentConfig)
     } else if (paymentConfig.opcode === 'login') {
@@ -158,6 +161,20 @@ export default {
         localStorage.clear()
         sessionStorage.clear()
         this.$emit('logout')
+      })
+    },
+    ratesWatch: function () {
+      const $self = this
+      $self.fetchRates()
+      setInterval(function () {
+        $self.fetchRates()
+      }, 30000)
+    },
+    fetchRates: function () {
+      this.$store.dispatch('fetchRates').then((rates) => {
+        this.$emit('ratesEvent', { opcode: 'rates-result', rates: rates })
+      }).catch((e) => {
+        console.log('ratesEvent', { opcode: 'rates-error' })
       })
     },
     getEthContractData: function () {

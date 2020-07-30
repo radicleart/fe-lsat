@@ -10,7 +10,7 @@ printf "\n----------------------------------------------------------------------
 pwd
 npm run build
 mkdir -p $PATH_DEPLOY
-cp dist/lsat-entry.js $PATH_DEPLOY/assets/.
-cp dist/lsat-entry.js $PATH_DEPLOY/loopbomb/.
+cp dist/lsat-entry*.js $PATH_DEPLOY/assets/.
+cp dist/lsat-entry*.js $PATH_DEPLOY/loopbomb/.
 
 exit 0;
