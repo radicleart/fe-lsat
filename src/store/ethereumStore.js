@@ -49,13 +49,16 @@ const getWeb3 = function () {
     if (typeof ethereum !== 'undefined') {
       ethereum.enable().then((res) => {
         web3 = new Web3(ethereum)
+        web3.eth.transactionBlockTimeout = 150
+        web3.transactionConfirmationBlocks = 20
+        web3.eth.transactionPollingTimeout = 1500
         resolve(web3)
       })
     } else if (typeof web3 !== 'undefined') {
-      web3 = new Web3(web3.currentProvider)
+      web3 = new Web3(web3.currentProvider, null, { transactionBlockTimeout: 150, transactionPollingTimeout: 1500 })
       resolve(web3)
     } else {
-      web3 = new Web3(new Web3.providers.HttpProvider(process.env.WEB3_PROVIDER))
+      web3 = new Web3(new Web3.providers.HttpProvider(process.env.WEB3_PROVIDER, { timeout: 10e3 }))
       resolve(web3)
     }
   })
@@ -82,7 +85,7 @@ const sendPayment = function (web3, data, account, resolve, reject) {
 
 const mintToken = function (web3, data, account, resolve, reject) {
   const abi = getABI()
-  const nftContract = new web3.eth.Contract(abi, NFT_CONTRACT_ADDRESS, { from: account, gasLimit: '1000000' })
+  const nftContract = new web3.eth.Contract(abi, NFT_CONTRACT_ADDRESS, { from: account, gasLimit: '250000' })
   nftContract.methods.getMintPrice().call({ from: account }).then((mintPrice) => {
     nftContract.methods.create().send({ from: account, value: mintPrice }).then((res) => {
       const result = {
@@ -112,7 +115,7 @@ const mintToken = function (web3, data, account, resolve, reject) {
 
 const setBaseTokenURI = function (web3, data, account, resolve, reject) {
   const abi = getABI()
-  const nftContract = new web3.eth.Contract(abi, NFT_CONTRACT_ADDRESS, { from: account, gasLimit: '1000000' })
+  const nftContract = new web3.eth.Contract(abi, NFT_CONTRACT_ADDRESS, { from: account, gasLimit: '100000' })
   nftContract.methods.setBaseTokenURI(data.baseTokenURI).send({ from: account }).then((res) => {
     const result = {
       assetHash: data.assetHash,
@@ -135,7 +138,7 @@ const setBaseTokenURI = function (web3, data, account, resolve, reject) {
 
 const getContractData = function (web3, data, account, resolve, reject) {
   const abi = getABI()
-  const nftContract = new web3.eth.Contract(abi, NFT_CONTRACT_ADDRESS, { gasPrice: 20000000000, from: account, gasLimit: '1000000' })
+  const nftContract = new web3.eth.Contract(abi, NFT_CONTRACT_ADDRESS, { gasPrice: 20000000000, from: account, gasLimit: '100000' })
   nftContract.methods.baseTokenURI().call({ from: account }).then((baseTokenURI) => {
     const result = {
       baseTokenURI: baseTokenURI
@@ -153,7 +156,7 @@ const getContractData = function (web3, data, account, resolve, reject) {
 
 const totalSupply = function (web3, account, resolve, reject) {
   const abi = getABI()
-  const nftContract = new web3.eth.Contract(abi, NFT_CONTRACT_ADDRESS, { gasPrice: 20000000000, from: account, gasLimit: '1000000' })
+  const nftContract = new web3.eth.Contract(abi, NFT_CONTRACT_ADDRESS, { gasPrice: 20000000000, from: account, gasLimit: '100000' })
   nftContract.methods.totalSupply().call({ from: account }).then((totalSupply) => {
     const result = {
       totalSupply: totalSupply
@@ -167,7 +170,7 @@ const totalSupply = function (web3, account, resolve, reject) {
 const setMintPrice = function (web3, data, account, resolve, reject) {
   const amountToSend = web3.utils.toWei(String(data.mintPrice), 'ether') // convert to wei value
   const abi = getABI()
-  const nftContract = new web3.eth.Contract(abi, NFT_CONTRACT_ADDRESS, { from: account, gasLimit: '1000000' })
+  const nftContract = new web3.eth.Contract(abi, NFT_CONTRACT_ADDRESS, { from: account, gasLimit: '100000' })
   nftContract.methods.setMintPrice(amountToSend).send({ from: account }).then((res) => {
     const result = {
       assetHash: data.assetHash,
@@ -181,7 +184,7 @@ const setMintPrice = function (web3, data, account, resolve, reject) {
 
 const makeWithdrawal = function (web3, data, account, resolve, reject) {
   const abi = getABI()
-  const nftContract = new web3.eth.Contract(abi, NFT_CONTRACT_ADDRESS, { from: account, gasLimit: '1000000' })
+  const nftContract = new web3.eth.Contract(abi, NFT_CONTRACT_ADDRESS, { from: account, gasLimit: '100000' })
   nftContract.methods.withdraw().send({ from: account }).then((res) => {
     const result = {
       assetHash: data.assetHash,

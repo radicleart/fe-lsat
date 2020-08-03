@@ -217,33 +217,6 @@ export default {
         console.log('paymentEvent', { opcode: 'eth-error-contract-data' })
       })
     },
-    /**
-    mintToken: function (configuration) {
-      const mintConfig = { opcode: 'mint-token', assetHash: configuration.assetHash }
-      this.message = 'Minting non fungible token - takes a minute or so..'
-      this.$store.dispatch('ethereumStore/transact', { opcode: 'eth-get-total-supply' }).then((result) => {
-        this.loading = false
-        const data = {
-          opcode: 'eth-get-total-supply',
-          totalSupply: result.totalSupply
-        }
-        this.$emit('mintEvent', data)
-        this.$store.dispatch('ethereumStore/transact', mintConfig).then((result) => {
-          this.page = 'result'
-          result.opcode = 'eth-mint-confirmed'
-          this.$emit('mintEvent', result)
-          this.result = result
-        }).catch((e) => {
-          this.message = e.message
-          this.page = 'error'
-          this.$emit('mintEvent', { opcode: 'eth-mint-error', message: e.message })
-        })
-      }).catch((e) => {
-        this.$emit('paymentEvent', { opcode: 'eth-error-contract-data' })
-        console.log('paymentEvent', { opcode: 'eth-error-contract-data' })
-      })
-    },
-    **/
     doContinue: function () {
       this.$emit('administerEvent', { opcode: 'administer-contract' })
     },
