@@ -1,25 +1,26 @@
 <template>
-  <b-card-text>
-    <div class="d-flex flex-column align-items-start">
-      <p>{{lookAndFeel.labels.card2Label1}}</p>
-      <div class="mb-3">
-        <input readonly="true" class="input1" @input="updateCredits($event)" id="input-horizontal1" v-model="localCredits" placeholder="$$$"/>
-        <span @click.prevent="countDown" class="stepper" style="cursor: pointer;"><span class="stepper-text">-</span></span>
-        <span @click.prevent="countUp" class="stepper" style="cursor: pointer;"><span class="stepper-text">+</span></span>
+    <div class="">
+      <div class="mb-3 label">{{lookAndFeel.labels.card2Label1}}</div>
+      <div class="mt-3 d-flex justify-content-center" style="margin-top: 20px; text-align: center; width: 100%;">
+        <span @click.prevent="countDown" class="stepper">
+          <font-awesome-icon style="padding: 3px; border-radius: 50%; border: 2pt solid #000;" width="15px" height="15px" icon="minus"/>
+        </span>
+        <input class="mx-3 input1" @input="updateCredits($event)" id="input-horizontal1" v-model="localCredits" placeholder="$$$"/>
+        <span @click.prevent="countUp" class="stepper" style="">
+          <font-awesome-icon style="margin-top: 3px;padding: 3px; border-radius: 50%; border: 2pt solid #000;" width="15px" height="15px" icon="plus"/>
+        </span>
       </div>
       <waiting-view v-if="loading"/>
       <div v-else>
-        <div class="mb-3 w-75" style="white-space: nowrap;">
-          <span class="symbol" v-html="currentSymbol"></span>
-          <input class="input2" readonly="true" id="input-horizontal2" :value="currentAmount" placeholder="$$$"/>
+        <p class="total">Your total</p>
+        <div style="margin-bottom: 20px;margin-top: 20px;">
+          <span class="symbol" v-html="currentSymbol"></span> <span style="font-weight: 300; margin-left: 20px;">{{currentAmount}}</span>
         </div>
-        <div class="mb-3 w-75" style="white-space: nowrap;">
-          <span class="symbol" v-html="fiatSymbol"></span>
-          <input class="input2" readonly="true" id="input-horizontal3" :value="formattedFiat" placeholder="$$$"/>
+        <div>
+          <span class="symbol" v-html="fiatSymbol"></span> <span  style="font-weight: 300; margin-left: 20px;">{{formattedFiat}}</span>
         </div>
       </div>
     </div>
-  </b-card-text>
 </template>
 
 <script>
@@ -150,19 +151,36 @@ export default {
   }
 }
 </script>
-<style lang="scss">
+<style scoped lang="scss">
+.label {
+  text-align: left;
+  font-weight: 400;
+  font-size: 10px;
+  letter-spacing: 0px;
+  color: #000000;
+  opacity: 1;
+}
+p.total {
+  text-align: left;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0px;
+  color: #000000;
+  opacity: 1;
+  margin-bottom: 10px;
+}
 .fa-small {
   font-size: 15px;
 }
 .input1 {
-  background: #F9B807 0% 0% no-repeat padding-box;
-  border-radius: 11px;
+  width: 48px;
+  height: 45px;
+  text-align: center;
+  background: #FFFFFF 0% 0% no-repeat padding-box;
+  box-shadow: 0px 3px 6px #00000029;
+  border-radius: 5px;
   border: none;
-  opacity: 0.51;
-  font-weight: 700;
-  color: #000;
-  padding: 10px;
-  margin-top: 10px;
+  opacity: 1;
 }
 .input2 {
   background: #F5F5F5 0% 0% no-repeat padding-box;
@@ -173,21 +191,19 @@ export default {
   margin-top: 10px;
 }
 .symbol {
-  border: 1pt solid #F9B807;
-  border-radius: 50%;
-  font-size: 10px;
-  padding: 5px;
-  margin-right: 10px;
+  width: 13px;
+  height: 13px;
+  color: #000000;
+  opacity: 1;
 }
 .stepper {
-  height: 49px;
-  background: #F5F5F5 0% 0% no-repeat padding-box;
-  border-radius: 5px;
-  opacity: 1;
-  font-size: 14px;
-  font-weight: 700;
-  color: #000;
-  margin-left: 10px;
-  padding: 5px 15px;
+  width: 20px;
+  height: 20px;
+  padding: 5px;
+  cursor: pointer;
+  margin-left: 15px;
+  margin-right: 15px;
+  position: relative;
+  top: 7px;
 }
 </style>

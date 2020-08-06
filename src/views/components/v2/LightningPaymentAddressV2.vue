@@ -1,21 +1,16 @@
 <template>
 <div>
-  <div class="mb-3 row">
-    <div class="col-11">
-      <div>Sending: <b>{{paymentAmountSat}} satoshis</b> ({{paymentAmountBtc}} btc)</div>
-    </div>
-  </div>
-  <div>
+  <div class="spacer">
     <div title="Make Payment" v-if="payment">
       <div class="mb-3">
         <canvas ref="lndQrcode"></canvas>
       </div>
-      <div class="text-info scan-text">
-        <span @click.prevent="addQrCode()">Scan the barcode<br/>or click on the address to copy it</span>
-      </div>
-      <div class="d-flex justify-content-center">
+      <div class="d-flex justify-content-center" style="display: hidden;">
         <input class="input2" readonly="true" ref="paymentAddressBtc"  @click="copyAddress($event)" :value="paymentRequest" placeholder="Lightning invoice"/>
       </div>
+      <a class="copyAddress" href="#" @click="copyUri($event)" style="text-decoration: none;">
+        <span>Copy the address</span> <font-awesome-icon width="15px" height="15px" icon="copy"/>
+      </a>
     </div>
     <div title="Open Channel" v-else>
       <div class="text-info scan-text">
@@ -132,9 +127,25 @@ export default {
 }
 </script>
 <style >
+.spacer {
+  width: 272px;
+  height: 242px;
+}
+.copyAddress {
+  text-align: left;
+  text-decoration: underline;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0px;
+  color: #000000;
+  opacity: 1;
+}
+.copyAddress a {
+  text-decoration: none;;
+}
 canvas {
-  max-width: 350px;
-  max-height: 350px;
+  width: 80%;
+  height: 80%;
   border: 1pt solid #333;
 }
 .input2 {

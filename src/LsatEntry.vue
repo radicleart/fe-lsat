@@ -38,9 +38,12 @@ import AdministerContract from './views/AdministerContract'
 import ResultPage from './views/ResultPage'
 import { LSAT_CONSTANTS } from './lsat-constants'
 import { library } from '@fortawesome/fontawesome-svg-core'
-import { faEquals, faCopy, faAngleDoubleUp, faAngleDoubleDown } from '@fortawesome/free-solid-svg-icons'
+import { faQrcode, faPlus, faMinus, faEquals, faCopy, faAngleDoubleUp, faAngleDoubleDown } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
+library.add(faQrcode)
+library.add(faMinus)
+library.add(faPlus)
 library.add(faEquals)
 library.add(faCopy)
 library.add(faAngleDoubleUp)
