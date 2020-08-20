@@ -49,9 +49,9 @@ const getWeb3 = function () {
     if (typeof ethereum !== 'undefined') {
       ethereum.enable().then((res) => {
         web3 = new Web3(ethereum)
-        web3.eth.transactionBlockTimeout = 150
-        web3.transactionConfirmationBlocks = 20
-        web3.eth.transactionPollingTimeout = 1500
+        web3.eth.transactionBlockTimeout = 700
+        web3.transactionConfirmationBlocks = 600
+        web3.eth.transactionPollingTimeout = 3500
         resolve(web3)
       })
     } else if (typeof web3 !== 'undefined') {
