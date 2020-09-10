@@ -5,8 +5,7 @@
 </span>
 <div v-else>
   <div v-if="page === 'invoice'" :key="componentKey">
-    <framework-v2 v-if="lookAndFeel" :lookAndFeel="lookAndFeel" @paymentEvent="paymentEvent($event)"/>
-    <framework v-else @paymentEvent="paymentEvent($event)"/>
+    <framework @paymentEvent="paymentEvent($event)"/>
   </div>
   <div class="" v-else-if="page === 'result'" >
     <result-page :lookAndFeel="lookAndFeel" :result="result" />
@@ -33,7 +32,6 @@ import Notifications from 'vue-notification'
 import BootstrapVue from 'bootstrap-vue'
 import Token from './views/components/Token'
 import Framework from './views/Framework'
-import FrameworkV2 from './views/FrameworkV2'
 import AdministerContract from './views/AdministerContract'
 import ResultPage from './views/ResultPage'
 import { LSAT_CONSTANTS } from './lsat-constants'
@@ -61,7 +59,6 @@ export default {
   components: {
     Token,
     Framework,
-    FrameworkV2,
     ResultPage,
     AdministerContract
   },

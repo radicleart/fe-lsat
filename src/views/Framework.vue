@@ -24,7 +24,7 @@
         <div class="d-flex justify-content-center">
           <lightning-payment-address v-if="paymentOption === 'lightning'"/>
           <bitcoin-payment-address v-if="paymentOption === 'bitcoin'"/>
-          <ethereum-payment-address v-if="paymentOption === 'ethereum'" @paymentEvent="paymentEvent"/>
+          <ethereum-payment-address @paymentEvent="paymentEvent" v-if="paymentOption === 'ethereum'"/>
           <stacks-payment-address v-if="paymentOption === 'stacks'"/>
         </div>
         <notifications position="top right" width="30%" />

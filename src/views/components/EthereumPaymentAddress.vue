@@ -56,11 +56,12 @@ export default {
       this.$store.dispatch('ethereumStore/transact', { opcode: 'send-payment', amount: paymentChallenge.xchange.amountEth }).then((result) => {
         const data = { status: 10, opcode: 'eth-payment-confirmed', txId: result.txId }
         const paymentEvent = this.$store.getters[LSAT_CONSTANTS.KEY_RETURN_STATE](data)
-        this.$emit('paymentEvent', { opcode: 'eth-payment-begun2' })
+        // this.$emit('paymentEvent', { opcode: 'eth-payment-begun2' })
+        this.$emit('paymentEvent', paymentEvent)
         this.$store.dispatch('receivePayment', paymentEvent).then((result) => {
-          this.$emit('paymentEvent', paymentEvent)
           this.waitingMessage = 'Processed Payment'
           this.loading = false
+          // this.$emit('paymentEvent', paymentEvent)
         })
       }).catch((e) => {
         this.errorMessage = 'Please ensure you are logged into your meta mask account on the ' + NETWORK + ' network'

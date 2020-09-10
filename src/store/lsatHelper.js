@@ -30,6 +30,7 @@ const getPurchaseOrder = function (paymentChallenge) {
 }
 const lsatHelper = {
   startListening (paymentId) {
+    if (!socket) return
     socket = new SockJS(API_PATH + '/lsat/ws1/mynews')
     stompClient = Stomp.over(socket)
     stompClient.connect({}, function () {

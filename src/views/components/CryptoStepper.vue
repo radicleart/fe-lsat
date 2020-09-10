@@ -28,43 +28,47 @@ export default {
   },
   methods: {
     countDown () {
-      if (this.localCredits < 3) {
+      const config = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
+      if (this.localCredits <= config.creditAttributes.min) {
         return
       }
-      if (this.localCredits === 3) {
-        this.localCredits--
+      if (this.localCredits < config.creditAttributes.min + config.creditAttributes.step) {
+        this.localCredits = config.creditAttributes.min
       } else {
-        this.localCredits -= 2
+        this.localCredits -= config.creditAttributes.step
       }
       this.updateCredits()
     },
     countUp () {
-      if (this.localCredits >= 20) {
+      const config = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
+      if (this.localCredits >= config.creditAttributes.max) {
         return
       }
-      this.localCredits += 2
+      this.localCredits += config.creditAttributes.step
       this.updateCredits()
     },
     updateCredits (evt) {
+      const config = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
       let numbC = 0
       try {
         if (this.localCredits.length === 0) {
           return
         }
         if (isNaN(this.localCredits)) {
-          this.$notify({ type: 'warn', title: 'Number of Credits', text: 'Credits must be a number between 2 and 20!' })
-          this.localCredits = 2
+          // this.$notify({ type: 'warn', title: 'Number of Credits', text: 'Credits must be a number between ' + config.creditAttributes.min + ' and ' + config.creditAttributes.max + '!' })
+          this.localCredits = config.creditAttributes.start
           return
         }
         numbC = Number(this.localCredits)
-        if (numbC < 1 || numbC > 20) {
-          this.$notify({ type: 'warn', title: 'Number of Credits', text: 'Credits must be between 2 and 20!' })
-          this.localCredits = 2
+        if (numbC < config.creditAttributes.min || numbC > config.creditAttributes.max) {
+          // this.$notify({ type: 'warn', title: 'Number of Credits', text: 'Credits must be a number between ' + config.creditAttributes.min + ' and ' + config.creditAttributes.max + '!' })
+          this.localCredits = config.creditAttributes.start
         }
       } catch (e) {
-        this.$notify({ type: 'warn', title: 'Number of Credits', text: 'Credits must be between 2 and 20!' })
-        this.localCredits = 2
+        // this.$notify({ type: 'warn', title: 'Number of Credits', text: 'Credits must be a number between ' + config.creditAttributes.min + ' and ' + config.creditAttributes.max + '!' })
+        this.localCredits = config.creditAttributes.start
       }
+      // this.$store.dispatch('updateAmount', { numbCredits: this.localCredits })
       this.$emit('updateCredits', this.localCredits)
     }
   },
