@@ -10,9 +10,6 @@
   <div class="" v-else-if="page === 'result'" >
     <result-page :lookAndFeel="lookAndFeel" :result="result" />
   </div>
-  <div class="" v-else-if="page === 'token'" >
-    <token :token="token" @startOver="startOver"/>
-  </div>
   <div class="" v-else-if="page === 'administer-contract'" >
     <administer-contract @doContinue="doContinue"/>
   </div>
@@ -30,7 +27,6 @@ import Vue from 'vue'
 import store from './store'
 import Notifications from 'vue-notification'
 import BootstrapVue from 'bootstrap-vue'
-import Token from './views/components/Token'
 import Framework from './views/Framework'
 import AdministerContract from './views/AdministerContract'
 import ResultPage from './views/ResultPage'
@@ -57,7 +53,6 @@ Vue.mixin({ store })
 export default {
   name: 'LsatEntry',
   components: {
-    Token,
     Framework,
     ResultPage,
     AdministerContract
@@ -112,9 +107,6 @@ export default {
   mounted () {
     const paymentConfig = this.parseConfiguration()
     this.lookAndFeel = paymentConfig.lookAndFeel
-    if (paymentConfig.ratesWatch) {
-      this.ratesWatch(paymentConfig)
-    }
     if (paymentConfig.opcode === 'mint-token') {
       this.mintToken(paymentConfig)
     } else if (paymentConfig.opcode === 'login') {
@@ -124,20 +116,14 @@ export default {
       this.getEthContractData()
     } else if (paymentConfig.opcode === 'administer-contract') {
       this.page = 'administer-contract'
-    } else {
-      // check local storage for a valid token and notify caller if exists.
-      if (paymentConfig.paymentId && this.paymentSent(paymentConfig)) {
-        const data = { opcode: 'lsat-payment-confirmed' }
-        const paymentEvent = this.$store.getters[LSAT_CONSTANTS.KEY_RETURN_STATE](data)
-        this.$emit('paymentEvent', paymentEvent)
-        console.log('paymentEvent', paymentEvent)
-      } else {
-        this.initialiseApp(paymentConfig)
-      }
+    } else if (paymentConfig.opcode === 'load-credits') {
+      this.$store.dispatch('initialiseApp', paymentConfig).then((result) => {
+        this.page = 'invoice'
+        this.loaded = true
+      })
     }
   },
   beforeDestroy () {
-    this.$store.dispatch('stopListening')
   },
   methods: {
     loginBanter: function () {
@@ -161,20 +147,6 @@ export default {
         localStorage.clear()
         sessionStorage.clear()
         this.$emit('logout')
-      })
-    },
-    ratesWatch: function () {
-      const $self = this
-      $self.fetchRates()
-      setInterval(function () {
-        $self.fetchRates()
-      }, 30000)
-    },
-    fetchRates: function () {
-      this.$store.dispatch('fetchRates').then((rates) => {
-        this.$emit('ratesEvent', { opcode: 'rates-result', rates: rates })
-      }).catch((e) => {
-        console.log('ratesEvent', { opcode: 'rates-error' })
       })
     },
     getEthContractData: function () {
@@ -236,57 +208,9 @@ export default {
       }
       return paymentConfig
     },
-    paymentSent: function (configuration) {
-      const token = this.$store.getters[LSAT_CONSTANTS.KEY_TOKEN]
-      if (token) {
-        this.page = 'token'
-        const data = { opcode: 'lsat-payment-confirmed', token: token }
-        const paymentEvent = this.$store.getters[LSAT_CONSTANTS.KEY_RETURN_STATE](data)
-        this.$emit('paymentEvent', paymentEvent)
-        console.log('paymentEvent', paymentEvent)
-        return true
-      }
-    },
-    initialiseApp: function (paymentConfig) {
-      const methodName = (paymentConfig.paymentId) ? 'initialiseApp' : 'reinitialiseApp'
-      this.$store.dispatch(methodName, paymentConfig).then((result) => {
-        if (result.tokenAcquired) {
-          this.message = 'resource has been acquired. <br/><br/>'
-          this.page = 'token'
-          const data = { opcode: 'lsat-payment-confirmed' }
-          const paymentEvent = this.$store.getters[LSAT_CONSTANTS.KEY_RETURN_STATE](data)
-          this.$emit('paymentEvent', paymentEvent)
-          console.log('paymentEvent', data)
-        } else {
-          this.$store.dispatch('startListening')
-          this.page = 'invoice'
-          this.loaded = true
-          this.$emit('paymentEvent', { opcode: 'lsat-payment-loaded' })
-          console.log('paymentEvent', { opcode: 'lsat-payment-loaded' })
-        }
-      })
-    },
     paymentEvent: function (data) {
-      if (data.opcode === 'lsat-payment-expired') {
-        this.paymentExpired()
-      } else if (data.opcode === 'lsat-payment-credits') {
-        this.page = 'invoice'
-        this.componentKey += 1
-      } else {
-        this.page = 'invoice'
-        this.result = data
-      }
       this.$emit('paymentEvent', data)
       console.log('paymentEvent', data)
-    },
-    paymentExpired () {
-      this.$store.dispatch('fetchRates')
-    },
-    startOver () {
-      const configuration = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
-      this.$store.dispatch('reinitialiseApp', configuration).then((resource) => {
-        this.page = 'invoice'
-      })
     }
   },
   computed: {
@@ -300,10 +224,6 @@ export default {
     loggedIn () {
       const myProfile = this.$store.getters['authStore/getMyProfile']
       return myProfile.loggedIn
-    },
-    token () {
-      const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
-      return (paymentChallenge && paymentChallenge.lsatInvoice) ? paymentChallenge.lsatInvoice.token : {}
     }
   }
 }

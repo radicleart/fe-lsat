@@ -147,26 +147,6 @@ export default new Vuex.Store({
     getNumbCredits: state => {
       return state.paymentChallenge.xchange.numbCredits
     },
-    getBitcoinAddress: state => {
-      return state.paymentChallenge.bitcoinInvoice.bitcoinAddress
-    },
-    getLsat: state => {
-      return state.paymentChallenge.lsatInvoice
-    },
-    getLsatExpired: state => {
-      return lsatHelper.lsatExpired(state.paymentChallenge)
-    },
-    getLsatExpires: state => {
-      return lsatHelper.lsatExpires(state.paymentChallenge)
-    },
-    getLsatDuration: state => {
-      return lsatHelper.lsatDuration(state.paymentChallenge)
-    },
-    getToken: state => {
-      const paymentId = localStorage.getItem('402-payment-id')
-      const token = localStorage.getItem('402-token-' + paymentId)
-      return token
-    },
     getTempUserId: state => {
       if (state.tempUserId) {
         return JSON.parse(localStorage.getItem('RADICLE_TUID'))
@@ -221,52 +201,14 @@ export default new Vuex.Store({
     }
   },
   actions: {
-    reinitialiseApp ({ commit }, configuration) {
-      const paymentId = localStorage.getItem('402-payment-id')
-      localStorage.removeItem('402-token-' + paymentId)
-      localStorage.removeItem('402-payment-id')
-      return this.dispatch('initialiseApp', configuration)
-    },
     initialiseApp ({ state, commit }, configuration) {
       const $self = this
       return new Promise((resolve, reject) => {
-        if (!configuration.purchaseEndpoint) {
-          configuration.purchaseEndpoint = '/assets/buy-now'
-        }
         commit('addHeaders', authHeaders(configuration))
         commit('addPaymentConfig', configuration)
         $self.dispatch('fetchRates').then(() => {
           commit('addPaymentChallenge', initPaymentChallenge(state.rateObject, state.configuration.creditAttributes))
-          if (configuration.opcode === 'lsat-place-order') {
-            configuration.opcode = 'payment'
-            commit('addPaymentConfig', configuration)
-            resolve({ tokenAcquired: false, resource: state.paymentChallenge })
-            return
-          }
-          lsatHelper.checkPayment(state.paymentChallenge).then((paymentChallenge) => {
-            commit('addPaymentChallenge', paymentChallenge)
-            if (paymentChallenge.lsatInvoice && paymentChallenge.lsatInvoice.state === 'SETTLED' && paymentChallenge.lsatInvoice.preimage) {
-              lsatHelper.storeToken(paymentChallenge.lsatInvoice.preimage, paymentChallenge)
-              lsatHelper.tokenChallenge(configuration).then((resource) => {
-                resolve({ tokenAcquired: true, resource: resource })
-              })
-            } else if (paymentChallenge.status > 3) {
-              resolve({ tokenAcquired: true })
-            } else {
-              commit('addPaymentChallenge', paymentChallenge)
-              lsatHelper.challenge(paymentChallenge, configuration).then((lsatEnabledPC) => {
-                commit('addPaymentOptions')
-                if (lsatEnabledPC) {
-                  commit('addPaymentChallenge', lsatEnabledPC)
-                  if (lsatEnabledPC.paymentId && lsatEnabledPC.paymentId !== 'null') {
-                    lsatHelper.startListening(lsatEnabledPC.paymentId)
-                    commit('addPaymentChallenge', lsatEnabledPC)
-                  }
-                }
-                resolve({ tokenAcquired: false, resource: state.paymentChallenge })
-              })
-            }
-          })
+          resolve({ tokenAcquired: false, resource: state.paymentChallenge })
         })
       })
     },
@@ -274,18 +216,9 @@ export default new Vuex.Store({
       return new Promise((resolve, reject) => {
         const pc = state.paymentChallenge
         pc.status = paymentEvent.status
-        pc.etherInvoice.txId = paymentEvent.txId
-        lsatHelper.receivePayment(pc).then((pc) => {
-          commit('addPaymentChallenge', pc)
-          resolve(pc)
-        })
-      })
-    },
-    deleteExpiredPayment ({ state, commit }) {
-      return new Promise((resolve, reject) => {
-        lsatHelper.deleteExpiredPayment(state.paymentChallenge.paymentId).then(() => {
-          resolve()
-        })
+        pc.etherTxId = paymentEvent.txId
+        commit('addPaymentChallenge', pc)
+        resolve(pc)
       })
     },
     updateAmount ({ state, commit }, data) {
@@ -298,20 +231,6 @@ export default new Vuex.Store({
           commit('addRateObject', rateObject)
           resolve(rateObject)
         })
-      })
-    },
-    startListening ({ state }) {
-      if (state.paymentChallenge.paymentId && state.paymentChallenge.paymentId !== 'null') {
-        lsatHelper.startListening(state.paymentChallenge.paymentId)
-      }
-    },
-    stopListening ({ commit }) {
-      lsatHelper.stopListening()
-    },
-    storePreimage ({ state, commit }, response) {
-      return new Promise((resolve, reject) => {
-        const token = lsatHelper.storeToken(response.settledInvoice.preimage, state.paymentChallenge)
-        resolve(token)
       })
     }
   }
