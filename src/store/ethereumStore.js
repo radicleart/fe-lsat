@@ -1,11 +1,12 @@
 import Web3 from 'web3'
 import _ from 'lodash'
-// import abiContract from './LoopbombABIRemix.json'
 import abiContract from './LoopbombX.json'
+import store from '@/store'
+import { LSAT_CONSTANTS } from '@/lsat-constants'
 
-const NFT_CONTRACT_ADDRESS = process.env.VUE_APP_NFT_CONTRACT_ADDRESS
 const NETWORK = process.env.VUE_APP_NETWORK
-const OWNER_ADDRESS = process.env.VUE_APP_OWNER_ADDRESS
+let OWNER_ADDRESS = ''
+let NFT_CONTRACT_ADDRESS = ''
 
 const getABI = function () {
   console.log(abiContract)
@@ -207,6 +208,9 @@ const ethereumStore = {
   actions: {
     transact ({ commit, state }, data) {
       return new Promise((resolve, reject) => {
+        const config = store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
+        OWNER_ADDRESS = config.addresses.ethPaymentAddress
+        NFT_CONTRACT_ADDRESS = config.addresses.ethContractAddress
         getWeb3().then((web3) => {
           if (!web3) {
             reject(new Error('no ethereum provider registered - please download Meta Mask to continue!'))

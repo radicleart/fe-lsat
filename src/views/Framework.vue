@@ -98,9 +98,7 @@ export default {
       this.paymentOption = paymentOption
       configuration.paymentOption = paymentOption
       this.$store.commit('addPaymentConfig', configuration)
-      if (paymentOption === 'ethereum') {
-        this.enableMM()
-      }
+      this.enableMM()
     },
     updateCredits (credits) {
       clearTimeout(this.resizeTimer)
@@ -108,7 +106,7 @@ export default {
       this.updatingCredits = true
       this.resizeTimer = setTimeout(function () {
         $self.$store.dispatch('updateAmount', { numbCredits: credits }).then(() => {
-          // $self.$emit('paymentEvent', { opcode: 'lsat-payment-credits', numbCredits: credits, paymentId: paymentChallenge.paymentId })
+          // $self.$emit('paymentEvent', { opcode: 'lsat-payment-credits', numbCredits: credits })
           $self.updatingCredits = false
         })
       }, 500)

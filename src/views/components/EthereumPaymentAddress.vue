@@ -1,6 +1,6 @@
 <template>
 <div class="vld-parent d-flex flex-column align-items-center">
-    <loading :active.sync="loading"
+  <loading :active.sync="loading"
     :can-cancel="true"
     :on-cancel="onCancel"
     :is-full-page="fullPage"></loading>

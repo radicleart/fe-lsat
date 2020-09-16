@@ -31,6 +31,7 @@
 }
 
 .vld-overlay .vld-icon, .vld-parent {
-  position: relative;
+  position: absolute;
+  text-align: center;
 }
 

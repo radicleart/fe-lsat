@@ -3,7 +3,7 @@ import axios from 'axios'
 import { LSAT_CONSTANTS } from '@/lsat-constants'
 import _ from 'lodash'
 
-const API_PATH = process.env.VUE_APP_RADICLE_API
+const API_PATH = process.env.VUE_APP_API_RISIDIO
 const ETH_RATE_PATH = process.env.VUE_APP_ETH_RATE_PATH2
 const BTC_RATE_PATH = process.env.VUE_APP_BTC_RATE_PATH
 const headers = function () {

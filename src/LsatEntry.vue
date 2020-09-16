@@ -80,7 +80,7 @@ export default {
         return
       }
       if (paymentChallenge.status > 3) {
-        const data = { opcode: 'lsat-payment-confirmed', status: paymentChallenge.status }
+        const data = { opcode: 'chain-payment-confirmed', status: paymentChallenge.status }
         const paymentEvent = this.$store.getters[LSAT_CONSTANTS.KEY_RETURN_STATE](data)
         this.$emit('paymentEvent', paymentEvent)
         console.log('paymentEvent', paymentEvent)
@@ -92,19 +92,13 @@ export default {
         const paymentEvent = this.$store.getters[LSAT_CONSTANTS.KEY_RETURN_STATE](data)
         this.$emit('paymentEvent', paymentEvent)
         console.log('paymentEvent', paymentEvent)
-      } else {
-        const data = {
-          opcode: 'lsat-status-change',
-          status: paymentChallenge.status,
-          orderCode: paymentChallenge.paymentId,
-          token: (paymentChallenge.lsatInvoice) ? paymentChallenge.lsatInvoice.token : null
-        }
-        this.$emit('paymentEvent', data)
-        console.log('paymentEvent', data)
       }
     }
   },
   mounted () {
+    this.$store.dispatch('stacksStore/fetchWalletInfo').then((wallet) => {
+      console.log(wallet)
+    })
     const paymentConfig = this.parseConfiguration()
     this.lookAndFeel = paymentConfig.lookAndFeel
     if (paymentConfig.opcode === 'mint-token') {
@@ -127,12 +121,12 @@ export default {
   },
   methods: {
     loginBanter: function () {
-      this.$store.dispatch('authStore/startLogin')
+      this.$store.dispatch('stacksStore/startLogin')
       this.$emit('login')
       const $self = this
       let counter = 0
       const intval = setInterval(function () {
-        const myProfile = $self.$store.getters['authStore/getMyProfile']
+        const myProfile = $self.$store.getters['stacksStore/getMyProfile']
         if (myProfile.loggedIn) {
           clearInterval(intval)
         }
@@ -143,7 +137,7 @@ export default {
       }, 1000)
     },
     logout () {
-      this.$store.dispatch('authStore/startLogout').then(() => {
+      this.$store.dispatch('stacksStore/startLogout').then(() => {
         localStorage.clear()
         sessionStorage.clear()
         this.$emit('logout')
@@ -222,7 +216,7 @@ export default {
       return paymentChallenge
     },
     loggedIn () {
-      const myProfile = this.$store.getters['authStore/getMyProfile']
+      const myProfile = this.$store.getters['stacksStore/getMyProfile']
       return myProfile.loggedIn
     }
   }

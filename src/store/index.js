@@ -6,7 +6,7 @@ import {
   UserSession,
   decodeToken
 } from 'blockstack'
-import authStore from '@/store/authStore'
+import stacksStore from '@/store/stacksStore'
 
 Vue.use(Vuex)
 
@@ -44,19 +44,11 @@ const getAmountSat = function (amountBtc) {
     return 0
   }
 }
-const options = [{ text: 'Lightning', value: 'lightning' }, { text: 'Bitcoin', value: 'bitcoin' }, { text: 'Ether', value: 'ethereum' }, { text: 'Stacks', value: 'stacks' }]
+const options = [{ text: 'Ether', value: 'ethereum' }, { text: 'Stacks', value: 'stacks' }]
 const getPaymentOptions = function (paymentChallenge, configuration) {
   const allowedOptions = []
   options.forEach(function (option) {
-    if (option.value === 'lightning' && paymentChallenge.lsatInvoice && paymentChallenge.lsatInvoice.paymentHash) {
-      if (!configuration.paymentOptions || configuration.paymentOptions.allowLightning) {
-        allowedOptions.push({ text: 'Lightning', value: 'lightning' })
-      }
-    } else if (option.value === 'bitcoin' && paymentChallenge.bitcoinInvoice && paymentChallenge.bitcoinInvoice.bitcoinAddress) {
-      if (!configuration.paymentOptions || configuration.paymentOptions.allowBitcoin) {
-        allowedOptions.push({ text: 'Bitcoin', value: 'bitcoin' })
-      }
-    } else if (option.value === 'ethereum') {
+    if (option.value === 'ethereum') {
       if (!configuration.paymentOptions || configuration.paymentOptions.allowEthereum) {
         allowedOptions.push({ text: 'Ether', value: 'ethereum' })
       }
@@ -77,7 +69,6 @@ const initPaymentChallenge = function (rateObject, creditAttributes) {
   let amountBtc = amountFiat / rateObject.bitcoinRates[creditAttributes.fiatCurrency]['15m']
   amountBtc = Math.round(amountBtc * precision) / precision
   const pc = {
-    paymentId: localStorage.getItem('402-payment-id'),
     xchange: {
       numbCredits: creditAttributes.start,
       fiatCurrency: creditAttributes.fiatCurrency,
@@ -86,9 +77,7 @@ const initPaymentChallenge = function (rateObject, creditAttributes) {
       amountSat: getAmountSat(amountBtc),
       amountEth: Math.round((amountBtc / rateObject.ethToBtcRate.rate) * precision) / precision,
       amountStx: Math.round((amountBtc / rateObject.stxToBtcRate.rate) * precision) / precision
-    },
-    bitcoinInvoice: {},
-    lsatInvoice: {}
+    }
   }
   return pc
 }
@@ -96,10 +85,10 @@ const initPaymentChallenge = function (rateObject, creditAttributes) {
 export default new Vuex.Store({
   modules: {
     ethereumStore: ethereumStore,
-    authStore: authStore
+    stacksStore: stacksStore
   },
   state: {
-    authStore: authStore,
+    stacksStore: stacksStore,
     configuration: null,
     rateObject: null,
     settledInvoice: null,
@@ -115,12 +104,10 @@ export default new Vuex.Store({
     getReturnState: state => data => {
       const result = {
         opcode: data.opcode,
-        token: (data.token) ? data.token : state.paymentChallenge.lsatInvoice.token,
         status: (data.status) ? data.status : state.paymentChallenge.status,
-        numbCredits: state.paymentChallenge.xchange.numbCredits,
-        paymentId: state.paymentChallenge.paymentId
+        numbCredits: state.paymentChallenge.xchange.numbCredits
       }
-      if (data.opcode === 'lsat-payment-confirmed') {
+      if (data.opcode === 'chain-payment-confirmed') {
         result.lsat = lsatHelper.lsat
       }
       return result
@@ -169,13 +156,9 @@ export default new Vuex.Store({
     addPaymentChallenge (state, o) {
       if (!o) {
         o = {
-          paymentId: localStorage.getItem('402-payment-id'),
-          xchange: state.configuration.value,
-          bitcoinInvoice: {},
-          lsatInvoice: {}
+          xchange: state.configuration.value
         }
       }
-      localStorage.setItem('402-payment-id', o.paymentId)
       state.paymentChallenge = o
     },
     addPaymentOption (state, o) {
@@ -223,7 +206,8 @@ export default new Vuex.Store({
     },
     updateAmount ({ state, commit }, data) {
       state.configuration.creditAttributes.start = data.numbCredits
-      return this.dispatch('reinitialiseApp', state.configuration)
+      const paymentChallenge = initPaymentChallenge(state.rateObject, state.configuration.creditAttributes)
+      commit('addPaymentChallenge', paymentChallenge)
     },
     fetchRates ({ commit }) {
       return new Promise((resolve, reject) => {

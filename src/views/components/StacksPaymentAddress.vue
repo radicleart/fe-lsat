@@ -1,7 +1,26 @@
 <template>
 <div class="d-flex flex-column align-items-center">
-  <div class="rd-text mt-3 mx-auto" v-if="!stacksSupported" style="height: 40vh;">
-    <h2 class="mt-0">Coming soon - stay tuned!</h2>
+  <div class="mx-auto" v-if="!stacksSupported" style="height: 40vh;">
+    <loading :active.sync="loading" class="text-center"
+      :can-cancel="true"
+      :on-cancel="onCancel"
+      :is-full-page="fullPage"></loading>
+
+    <div class="mt-3 rd-text d-flex flex-column align-items-center" style="" v-if="loading">
+      <span class="text-warning">{{waitingMessage}}</span>
+      <span class="text-warning"><a href="#" @click.prevent="onCancel">cancel</a></span>
+    </div>
+    <div class="rd-text mt-3 d-flex flex-column align-items-center" v-else>
+      <div>
+        <b-button href="#" class="mb-5 btn btn-dark border btn-lg text-warning" @click.prevent="sendPayment('blockstack')">Pay with Stacks</b-button>
+      </div>
+      <div>
+        <b-button href="#" class="mb-5 btn btn-dark border btn-lg text-warning" @click.prevent="sendPayment('risidio')">Special Offer</b-button>
+      </div>
+    </div>
+    <div>
+      <span class="text-danger">{{errorMessage}}</span>
+    </div>
   </div>
   <div class="mb-3 mx-auto" v-if="stacksSupported">
     <canvas id="qrcode"></canvas>
@@ -34,16 +53,24 @@
 import QRCode from 'qrcode'
 import moment from 'moment'
 import { LSAT_CONSTANTS } from '@/lsat-constants'
+import Loading from 'vue-loading-overlay'
+
+const NETWORK = process.env.VUE_APP_NETWORK
 
 // noinspection JSUnusedGlobalSymbols
 export default {
-  name: 'BitcoinPaymentAddress',
+  name: 'StacksPaymentAddress',
   components: {
+    Loading
   },
   props: {
   },
   data () {
     return {
+      waitingMessage: 'Open Blockstack connect to proceed (sending transactions to the stacks network takes a minute or so...)',
+      loading: false,
+      fullPage: true,
+      errorMessage: null
     }
   },
   watch: {
@@ -54,34 +81,45 @@ export default {
   mounted () {
     this.addQrCode()
   },
-  computed: {
-    myProfile () {
-      const blockstackProfile = this.$store.getters['authStore/getMyProfile']
-      return blockstackProfile
-    },
-    currentTime () {
-      const serverTime = this.$store.getters.serverTime
-      return moment(serverTime).format('HH:mm:ss')
-    },
-    stacksSupported () {
-      return false
-    },
-    paymentAmount () {
-      const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
-      return paymentChallenge.xchange.amountBtc
-    },
-    paymentAddress () {
-      const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
-      return paymentChallenge.bitcoinInvoice.bitcoinAddress
-    }
-  },
-
   methods: {
+    sendPayment (provider) {
+      this.loading = true
+      this.waitingMessage = 'Processing Payment'
+      this.$emit('paymentEvent', { opcode: 'stx-payment-begun1' })
+      let action = 'stacksStore/makeTransferRisidio'
+      if (provider === 'blockstack') {
+        action = 'stacksStore/makeTransferBlockstack'
+      }
+      this.$store.dispatch(action).then((result) => {
+        const data = { status: 10, opcode: 'stx-payment-confirmed', txId: result.txId }
+        const paymentEvent = this.$store.getters[LSAT_CONSTANTS.KEY_RETURN_STATE](data)
+        this.$emit('paymentEvent', paymentEvent)
+        this.$store.dispatch('receivePayment', paymentEvent).then((result) => {
+          this.waitingMessage = 'Processed Payment'
+          this.loading = false
+          this.$emit('paymentEvent', paymentEvent)
+        })
+      }).catch((e) => {
+        if (e.message.indexOf('ConflictingNonceInMempool') > -1) {
+          this.$store.dispatch(action, { action: 'inc-nonce' }).then(() => {
+            this.loading = false
+            this.errorMessage = 'second time lucky...'
+          })
+        } else {
+          this.errorMessage = e + ' on network: ' + NETWORK
+          this.loading = false
+        }
+      })
+    },
+    onCancel () {
+      this.loading = false
+    },
     paymentUri () {
+      const configuration = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
       const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
-      let uri = 'bitcoin:' + paymentChallenge.bitcoinInvoice.bitcoinAddress
-      uri += '?amount=' + paymentChallenge.xchange.amountBtc
-      if (paymentChallenge.stacksInvoice) uri += '&label=' + paymentChallenge.stacksInvoice.memo
+      if (!configuration.addresses) return ''
+      let uri = configuration.addresses.stxPaymentAddress
+      uri += '?amount=' + paymentChallenge.xchange.amountStx
       return uri
     },
     addQrCode () {
@@ -103,10 +141,33 @@ export default {
       document.execCommand('copy')
       this.$notify({ type: 'success', title: 'Copied Address', text: 'Copied the address to clipboard: ' + copyText.value })
     }
+  },
+  computed: {
+    myProfile () {
+      const blockstackProfile = this.$store.getters['stacksStore/getMyProfile']
+      return blockstackProfile
+    },
+    currentTime () {
+      const serverTime = this.$store.getters.serverTime
+      return moment(serverTime).format('HH:mm:ss')
+    },
+    stacksSupported () {
+      return false
+    },
+    paymentAmount () {
+      const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
+      return paymentChallenge.xchange.amountStx
+    },
+    paymentAddress () {
+      const configuration = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
+      if (!configuration.addresses) return ''
+      return configuration.addresses.stxPaymentAddress
+    }
   }
 }
 </script>
-<style scoped>
+<style lang="scss">
+@import "@/assets/scss/lsat-custom.scss";
 .tab-content {
   padding-top: 0px;
 }
