@@ -22,7 +22,7 @@
       <div class="container" v-if="!timeout">
         <div class="d-flex justify-content-center">
           <ethereum-payment-address @paymentEvent="paymentEvent" v-if="paymentOption === 'ethereum'"/>
-          <stacks-payment-address v-if="paymentOption === 'stacks'"/>
+          <stacks-payment-address @paymentEvent="paymentEvent" v-if="paymentOption === 'stacks'"/>
         </div>
         <notifications position="top right" width="30%" />
       </div>

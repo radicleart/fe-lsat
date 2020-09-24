@@ -105,10 +105,8 @@ export default new Vuex.Store({
       const result = {
         opcode: data.opcode,
         status: (data.status) ? data.status : state.paymentChallenge.status,
+        result: data.result,
         numbCredits: state.paymentChallenge.xchange.numbCredits
-      }
-      if (data.opcode === 'chain-payment-confirmed') {
-        result.lsat = lsatHelper.lsat
       }
       return result
     },

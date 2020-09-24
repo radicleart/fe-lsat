@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-PATH_DEPLOY=../radsoc/volumes/www/development/loopbomb
+PATH_DEPLOY=../radsoc/volumes/www/development/loopbomb-dev
 mkdir -p $PATH_DEPLOY
 
 printf "\n-----------------------------------------------------------------------------------------------------\n";

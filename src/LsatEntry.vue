@@ -28,12 +28,16 @@ import store from './store'
 import Notifications from 'vue-notification'
 import BootstrapVue from 'bootstrap-vue'
 import Framework from './views/Framework'
-import AdministerContract from './views/AdministerContract'
+import AdministerContract from './views/components/sessions/AdministerContract'
 import ResultPage from './views/ResultPage'
 import { LSAT_CONSTANTS } from './lsat-constants'
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { faQrcode, faPlus, faMinus, faEquals, faCopy, faAngleDoubleUp, faAngleDoubleDown } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import {
+  bufferCV
+} from '@blockstack/stacks-transactions'
+import CryptoJS from 'crypto-js'
 
 library.add(faQrcode)
 library.add(faMinus)
@@ -110,6 +114,10 @@ export default {
       this.getEthContractData()
     } else if (paymentConfig.opcode === 'administer-contract') {
       this.page = 'administer-contract'
+      this.$store.dispatch('initialiseApp', paymentConfig).then((result) => {
+        this.page = 'administer-contract'
+        this.loaded = true
+      })
     } else if (paymentConfig.opcode === 'load-credits') {
       this.$store.dispatch('initialiseApp', paymentConfig).then((result) => {
         this.page = 'invoice'
@@ -159,6 +167,15 @@ export default {
       })
     },
     mintToken: function (configuration) {
+      if (configuration.paymentOption === 'stacks') {
+        this.$store.dispatch('stacksStore/fetchWalletInfo').then((wallet) => {
+          this.mintTokenStacks(configuration, wallet)
+        })
+      } else {
+        this.mintTokenEthereum(configuration)
+      }
+    },
+    mintTokenEthereum: function (configuration) {
       const mintConfig = { opcode: 'mint-token', assetHash: configuration.assetHash }
       this.message = 'Minting non fungible token - takes a minute or so..'
       this.$store.dispatch('ethereumStore/transact', { opcode: 'eth-get-total-supply' }).then((result) => {
@@ -183,6 +200,32 @@ export default {
         console.log('paymentEvent', { opcode: 'eth-error-contract-data' })
       })
     },
+    mintTokenStacks: function (configuration) {
+      this.message = 'Minting non fungible token - takes a minute or so..'
+      // const assetHash = crypto.createHash('sha256').update(this.message).digest('hex')
+      const hash = CryptoJS.SHA256(configuration.assetHash)
+      const buffer = Buffer.from(hash.toString(CryptoJS.enc.Hex), 'hex')
+      const assetHash = bufferCV(buffer)
+      const data = {
+        functionName: 'create-loopbomb',
+        functionArgs: [assetHash]
+      }
+      let action = 'stacksStore/callContractBlockstack'
+      if (configuration.provider && configuration.provider === 'risidio') {
+        action = 'stacksStore/callContractRisidio'
+      }
+      this.$store.dispatch(action, data).then((result) => {
+        this.page = 'result'
+        result.opcode = 'stx-mint-confirmed'
+        this.$emit('mintEvent', result)
+        this.result = result
+      }).catch((e) => {
+        this.message = e.message
+        this.page = 'error'
+        this.$emit('mintEvent', { opcode: 'stx-mint-error', message: e.message })
+      })
+    },
+
     doContinue: function () {
       this.$emit('administerEvent', { opcode: 'administer-contract' })
     },

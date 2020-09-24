@@ -10,16 +10,18 @@
       <span class="text-warning">{{waitingMessage}}</span>
       <span class="text-warning"><a href="#" @click.prevent="onCancel">cancel</a></span>
     </div>
-    <div class="rd-text mt-3 d-flex flex-column align-items-center" v-else>
+    <div class="mb-5 rd-text mt-3 d-flex flex-column align-items-center" v-else>
       <div>
-        <b-button href="#" class="mb-5 btn btn-dark border btn-lg text-warning" @click.prevent="sendPayment('blockstack')">Pay with Stacks</b-button>
-      </div>
-      <div>
-        <b-button href="#" class="mb-5 btn btn-dark border btn-lg text-warning" @click.prevent="sendPayment('risidio')">Special Offer</b-button>
+        <b-button href="#" class="mb-3 btn btn-dark border btn-lg text-warning" @click.prevent="sendPayment('blockstack')">Pay with Stacks</b-button>
+        <div class="text-right text-white" style="font-size: 11px;">
+          <a href="https://testnet-explorer.blockstack.org/sandbox" class="text-white" target="_blank">Get Testnet STX</a>
+          <br/><br/>
+          <a href="#" class="text-white" @click.prevent="sendPayment('risidio')">Free Spins</a>
+        </div>
       </div>
     </div>
     <div>
-      <span class="text-danger">{{errorMessage}}</span>
+      <div class="text-danger" style="max-width: 800px;">{{errorMessage}}</div>
     </div>
   </div>
   <div class="mb-3 mx-auto" v-if="stacksSupported">
@@ -91,9 +93,9 @@ export default {
         action = 'stacksStore/makeTransferBlockstack'
       }
       this.$store.dispatch(action).then((result) => {
-        const data = { status: 10, opcode: 'stx-payment-confirmed', txId: result.txId }
+        const data = { status: 10, opcode: 'stx-payment-confirmed', result: result.result }
         const paymentEvent = this.$store.getters[LSAT_CONSTANTS.KEY_RETURN_STATE](data)
-        this.$emit('paymentEvent', paymentEvent)
+        // this.$emit('paymentEvent', paymentEvent)
         this.$store.dispatch('receivePayment', paymentEvent).then((result) => {
           this.waitingMessage = 'Processed Payment'
           this.loading = false

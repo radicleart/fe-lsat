@@ -36,7 +36,7 @@
 import Loading from 'vue-loading-overlay'
 
 export default {
-  name: 'AdministerContract',
+  name: 'EthContract',
   components: {
     Loading
   },
