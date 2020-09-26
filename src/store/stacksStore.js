@@ -306,15 +306,20 @@ const stacksStore = {
               'Content-Type': 'application/octet-stream'
             }
             axios.post(useApi + '/v2/broadcast', txdata, { headers: headers }).then(response => {
-              data.result = response.data
-              data.senderKey = null
-              resolve(data)
+              const result = {
+                txId: response.data,
+                network: 15,
+                tokenId: Math.floor(Math.random() * Math.floor(1000000000))
+              }
+              resolve(result)
             }).catch((error) => {
               if (error.response) {
-                if (error.response.data.message.indexOf('NotEnoughFunds')) {
+                if (error.response.data.message.indexOf('NotEnoughFunds') > -1) {
                   reject(new Error('Not enough funds in the wallet to send this - try decreasing the amount?'))
+                } else if (error.response.data.message.indexOf('ConflictingNonceInMempool') > -1) {
+                  reject(new Error('Conflicting Nonce In Mempool!'))
                 } else {
-                  reject(error.response.data.message)
+                  reject(new Error(error.response.data.message))
                 }
               } else {
                 reject(error.message)
@@ -393,8 +398,13 @@ const stacksStore = {
             name: state.appName,
             icon: state.appLogo
           },
-          finished: result => {
-            resolve({ result: result })
+          finished: response => {
+            const result = {
+              txId: response.data,
+              network: 15,
+              tokenId: Math.floor(Math.random() * Math.floor(1000000000))
+            }
+            resolve(result)
           }
         }
         openContractCall(txoptions)

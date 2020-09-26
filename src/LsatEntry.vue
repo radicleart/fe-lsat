@@ -207,7 +207,7 @@ export default {
       const buffer = Buffer.from(hash.toString(CryptoJS.enc.Hex), 'hex')
       const assetHash = bufferCV(buffer)
       const data = {
-        functionName: 'create-loopbomb',
+        functionName: 'create',
         functionArgs: [assetHash]
       }
       let action = 'stacksStore/callContractBlockstack'
@@ -216,7 +216,9 @@ export default {
       }
       this.$store.dispatch(action, data).then((result) => {
         this.page = 'result'
+        if (!result) result = {}
         result.opcode = 'stx-mint-confirmed'
+        result.assetHash = configuration.assetHash
         this.$emit('mintEvent', result)
         this.result = result
       }).catch((e) => {
