@@ -1,24 +1,17 @@
 import store from '@/store'
-import { openSTXTransfer, openContractCall, authenticate, showBlockstackConnect } from '@blockstack/connect'
-import {
-  Person,
-  UserSession,
-  decodeToken,
-  getPublicKeyFromPrivate
-} from 'blockstack'
+import { openSTXTransfer, openContractDeploy, openContractCall } from '@blockstack/connect'
 import { LSAT_CONSTANTS } from '@/lsat-constants'
 import {
   StacksTestnet,
   makeSTXTokenTransfer,
   makeContractCall,
   callReadOnlyFunction,
-  broadcastTransaction
-
+  broadcastTransaction,
+  makeContractDeploy
 } from '@blockstack/stacks-transactions'
 import axios from 'axios'
 import BigNum from 'bn.js'
 
-const BLOCKSTACK_LOGIN = Number(process.env.VUE_APP_BLOCKSTACK_LOGIN)
 let STX_PAYMENT_ADDRESS = process.env.VUE_APP_STACKS_PAYMENT_ADDRESS
 let STX_CONTRACT_ADDRESS = process.env.VUE_APP_STACKS_CONTRACT_ADDRESS
 let STX_CONTRACT_NAME = process.env.VUE_APP_STACKS_CONTRACT_NAME
@@ -26,7 +19,6 @@ const network = new StacksTestnet()
 const MESH_API = process.env.VUE_APP_API_RISIDIO + '/mesh'
 const MESH_API_RISIDIO = process.env.VUE_APP_API_RISIDIO_REMOTE + '/mesh'
 const mac = JSON.parse(process.env.VUE_APP_WALLET_MAC || '')
-const origin = window.location.origin
 const precision = 1000000
 
 /**
@@ -69,103 +61,6 @@ const getAmountStx = function (amountMicroStx) {
     return 0
   }
 }
-const userSession = new UserSession()
-const authFinished = function () {
-  store.dispatch('stacksStore/fetchMyAccount')
-}
-const authOptions = {
-  sendToSignIn: false,
-  redirectTo: '/',
-  manifestPath: '/manifest.json',
-  finished: authFinished,
-  // authOrigin: 'http://localhost:8080',
-  // userSession: userSession,
-  appDetails: {
-    name: 'risidio',
-    icon: origin + '/img/logo/risidio_black.svg'
-  }
-}
-const getProfile = function () {
-  let myProfile = {
-    loggedIn: false
-  }
-  try {
-    const account = userSession.loadUserData()
-    if (account) {
-      let uname = account.username
-      const person = new Person(account.profile)
-      let name = person.name()
-      if (uname) {
-        if (!name) {
-          const indexOfDot = uname.indexOf('.')
-          name = uname.substring(0, indexOfDot)
-        }
-      }
-      if (!uname && name) {
-        uname = name
-      }
-      if (!uname) {
-        uname = ''
-      }
-      const showAdmin =
-        uname === 'mike.personal.id' ||
-        uname.indexOf('brightblock') > -1 ||
-        uname.indexOf('risidio') > -1 ||
-        uname.indexOf('radicle') > -1 ||
-        uname.indexOf('mijoco') > -1 ||
-        uname.indexOf('head') > -1 ||
-        uname.indexOf('testuser0934583') > -1 ||
-        uname.indexOf('feek') > -1
-      const avatarUrl = person.avatarUrl()
-      // let privateKey = account.appPrivateKey + '01'
-      // privateKey = hexStringToECPair(privateKey).toWIF()
-      var authResponseToken = account.authResponseToken
-      var decodedToken = decodeToken(authResponseToken)
-      var publicKey = decodedToken.payload.public_keys[0]
-      publicKey = getPublicKeyFromPrivate(account.appPrivateKey)
-      const loggedIn = true
-      myProfile = {
-        loggedIn: loggedIn,
-        identityAddress: account.identityAddress,
-        publicKey: publicKey,
-        showAdmin: showAdmin,
-        showSuperAdmin: uname === 'mijoco.id.blockstack',
-        name: name,
-        description: person.description(),
-        avatarUrl: avatarUrl,
-        username: uname,
-        hubUrl: account.hubUrl,
-        apps: account.profile.apps
-      }
-    }
-    return myProfile
-  } catch (err) {
-    return myProfile
-  }
-}
-
-const authHeaders = function () {
-  var authResponseToken
-  var decodedToken
-  var publicKey
-  let token = 'v1:no-token' // note: not all requests require auth token - e.g. getPaymentAddress
-  if (userSession.isUserSignedIn()) {
-    const account = userSession.loadUserData()
-    if (account) {
-      authResponseToken = account.authResponseToken
-      decodedToken = decodeToken(authResponseToken)
-      publicKey = decodedToken.payload.public_keys[0]
-      token = 'v1:' + account.authResponseToken
-    }
-  }
-  const headers = {
-    IdentityAddress: publicKey,
-    'Content-Type': 'application/json',
-    Authorization: 'Bearer ' + token
-  }
-  return headers
-}
-
 const stacksStore = {
   namespaced: true,
   state: {
@@ -175,104 +70,45 @@ const stacksStore = {
       showAdmin: false
     },
     provider: 'risidio',
-    authHeaders: null,
     appName: 'Risidio Mesh',
     appLogo: '/img/logo/Risidio_logo_256x256.png',
-    wallet: mac
+    macsWallet: mac
   },
   getters: {
-    getMyProfile: state => {
-      return state.myProfile
-    },
-    getAuthHeaders: state => {
-      return state.authHeaders
+    getMacsWallet: state => {
+      return state.wallet
     }
   },
   mutations: {
-    loggedIn (state, loggedIn) {
-      state.myProfile = loggedIn
-    },
-    myProfile (state, myProfile) {
-      state.myProfile = myProfile
-    },
-    authHeaders (state, authHeaders) {
-      state.authHeaders = authHeaders
+    setMacsWallet (state, newMac) {
+      state.macsWallet = newMac
     }
   },
   actions: {
-    fetchMyAccount ({ state, commit }) {
-      return new Promise(resolve => {
-        if (userSession.isUserSignedIn()) {
-          // userSession.signUserOut(window.location.origin)
-          const profile = getProfile()
-          commit('myProfile', profile)
-          commit('authHeaders', authHeaders())
-          resolve(profile)
-        } else if (userSession.isSignInPending()) {
-          userSession.handlePendingSignIn().then(() => {
-            const profile = getProfile()
-            commit('myProfile', profile)
-            commit('authHeaders', authHeaders())
-            resolve(profile)
-          })
-        } else {
-          const profile = getProfile()
-          commit('myProfile', profile)
-          commit('authHeaders', authHeaders())
-          resolve(profile)
-        }
-      })
-    },
-    startLogin ({ state, commit }) {
-      return new Promise(resolve => {
-        if (BLOCKSTACK_LOGIN === 1) {
-          showBlockstackConnect(authOptions)
-        } else if (BLOCKSTACK_LOGIN === 2) {
-          authenticate(authOptions)
-        } else {
-          const origin = window.location.origin
-          const transitKey = userSession.generateAndStoreTransitKey()
-          const scopes = [
-            'store_write',
-            'publish_data'
-          ]
-          const authRequest = userSession.makeAuthRequest(transitKey, origin, origin + '/manifest.json', scopes)
-          userSession.redirectToSignInWithAuthRequest(authRequest, 'http://localhost:8888/auth')
-          resolve()
-        }
-      })
-    },
-    startLogout ({ state, commit }) {
-      return new Promise(resolve => {
-        if (userSession.isUserSignedIn()) {
-          userSession.signUserOut(window.location.origin)
-          commit('myProfile', getProfile())
-          resolve()
-        }
-      })
-    },
-
-    fetchWalletInfo ({ state, commit }) {
+    fetchMacsWalletInfo ({ state, commit }, address) {
       return new Promise((resolve, reject) => {
+        const macsWallet = state.macsWallet
         const data = {
-          path: '/v2/accounts/' + state.wallet.keyInfo.address,
+          path: '/v2/accounts/' + macsWallet.keyInfo.address,
           httpMethod: 'get',
           postData: null
         }
-        axios.post(MESH_API_RISIDIO + '/v2/accounts', data).then(response => {
-          state.wallet.nonce = response.data.nonce
-          state.wallet.balance = getAmountStx(parseInt(response.data.balance, 16))
-          resolve(state.wallet)
+        const provider = store.getters['authStore/getProvider']
+        const useApi = (provider === 'risidio') ? MESH_API_RISIDIO : MESH_API
+        axios.post(useApi + '/v2/accounts', data).then(response => {
+          macsWallet.nonce = response.data.nonce
+          macsWallet.balance = getAmountStx(parseInt(response.data.balance, 16))
+          commit('setMacsWallet', macsWallet)
+          resolve(macsWallet)
         }).catch((error) => {
           reject(error)
         })
       })
     },
-
     callContractRisidio ({ state }, data) {
       return new Promise((resolve, reject) => {
         setAddresses()
-        const profile = getProfile()
+        const profile = store.getters['authStore/getMyProfile']
         if (!data.senderKey) {
           data.senderKey = profile.senderKey
         }
@@ -489,6 +325,84 @@ const stacksStore = {
         }).catch((err) => {
           console.log(err)
           reject(err)
+        })
+      })
+    },
+    fetchFeeEstimate ({ state, commit }, data) {
+      return new Promise((resolve, reject) => {
+        const useApi = (state.provider === 'risidio') ? MESH_API_RISIDIO : MESH_API
+        const data = { path: '/v2/fees/transfer', httpMethod: 'get', postData: null }
+        axios.post(useApi + '/v2/accounts', data).then(response => {
+          resolve(response.data)
+          commit('setFeeEstimate', response.data)
+        }).catch((error) => {
+          if (error.response && error.response.data) {
+            const msg = error.response.data.status + ' - ' + error.response.data.message
+            reject(msg)
+          } else {
+            reject(error)
+          }
+        })
+      })
+    },
+    deployContractBlockstack ({ state }, data) {
+      return new Promise((resolve) => {
+        // const authOrigin = (state.provider === 'local-network') ? 'http://localhost:20443' : null
+        openContractDeploy({
+          contractName: data.contractName,
+          codeBody: data.codeBody,
+          // authOrigin,
+          appDetails: {
+            name: state.appName,
+            icon: state.appLogo
+          },
+          finished: (trans) => {
+            console.log(trans.txid)
+            store.dispatch('rstackStore/saveToGaia', trans).then(() => {
+              data.result = trans
+              store.dispatch('stacksStore/fetchMacsWalletInfo')
+              resolve(data)
+            })
+          }
+        })
+      })
+    },
+    deployContractRisidio ({ state, commit, dispatch }, data) {
+      return new Promise((resolve, reject) => {
+        network.coreApiUrl = 'http://localhost:20443'
+        const sender = state.macsWallet
+        if (!data.fee) {
+          data.fee = 4000
+        }
+        const txOptions = {
+          contractName: data.contractName,
+          codeBody: data.codeBody,
+          senderKey: sender.keyInfo.privateKey,
+          nonce: new BigNum(sender.nonce++), // watch for nonce increments if this works - may need to restart mocknet!
+          fee: new BigNum(data.fee), // set a tx fee if you don't want the builder to estimate
+          network
+        }
+        makeContractDeploy(txOptions).then((transaction) => {
+          const txdata = new Uint8Array(transaction.serialize())
+          const headers = {
+            'Content-Type': 'application/octet-stream'
+          }
+          const useApi = (state.provider === 'risidio') ? MESH_API_RISIDIO : MESH_API
+          axios.post(useApi + '/v2/broadcast', txdata, { headers: headers }).then(response => {
+            txOptions.senderKey = null
+            txOptions.fromAddress = data.address
+            txOptions.result = response.data
+            txOptions.provider = 'risidio'
+            txOptions.txtype = 'deployment'
+            store.dispatch('rstackStore/saveToGaia', txOptions).then(() => {
+              resolve(txOptions)
+              dispatch('stacksStore/fetchMacsWalletInfo')
+            })
+          }).catch((error) => {
+            reject(error)
+          })
+        }).catch((error) => {
+          reject(error)
         })
       })
     }

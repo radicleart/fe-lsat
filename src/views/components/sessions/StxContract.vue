@@ -73,25 +73,6 @@ export default {
       this.loading = false
       this.resultMessage = e.message
     })
-    /**
-    this.$store.dispatch('stacksStore/callContractBlockstackReadOnly', config).then((result) => {
-      this.loading = false
-      this.baseTokenURI = result.baseTokenURI
-      this.mintPrice = result.mintPrice
-    }).catch((e) => {
-      this.loading = false
-      this.resultMessage = e.message
-    })
-    config = { opcode: 'stx-get-contract-data', functionName: 'get-mint-price' }
-    this.$store.dispatch('stacksStore/callContractRisidioReadOnly', config).then((result) => {
-      this.loading = false
-      this.baseTokenURI = result.baseTokenURI
-      this.mintPrice = result.mintPrice
-    }).catch((e) => {
-      this.loading = false
-      this.resultMessage = e.message
-    })
-    **/
   },
   methods: {
     onSubmit (evt) {

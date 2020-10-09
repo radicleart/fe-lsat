@@ -2,11 +2,12 @@ import Vue from 'vue'
 import Vuex from 'vuex'
 import lsatHelper from './lsatHelper'
 import ethereumStore from './ethereumStore'
+import authStore from './authStore'
+import stacksStore from '@/store/stacksStore'
 import {
   UserSession,
   decodeToken
 } from 'blockstack'
-import stacksStore from '@/store/stacksStore'
 
 Vue.use(Vuex)
 
@@ -85,10 +86,10 @@ const initPaymentChallenge = function (rateObject, creditAttributes) {
 export default new Vuex.Store({
   modules: {
     ethereumStore: ethereumStore,
-    stacksStore: stacksStore
+    stacksStore: stacksStore,
+    authStore: authStore
   },
   state: {
-    stacksStore: stacksStore,
     configuration: null,
     rateObject: null,
     settledInvoice: null,
@@ -187,6 +188,7 @@ export default new Vuex.Store({
       return new Promise((resolve, reject) => {
         commit('addHeaders', authHeaders(configuration))
         commit('addPaymentConfig', configuration)
+        $self.dispatch('stacksStore/fetchMacsWalletBalance')
         $self.dispatch('fetchRates').then(() => {
           commit('addPaymentChallenge', initPaymentChallenge(state.rateObject, state.configuration.creditAttributes))
           resolve({ tokenAcquired: false, resource: state.paymentChallenge })

@@ -1,7 +1,7 @@
 <template v-if="loaded">
 <span v-if="page === 'login'">
-    <a v-if="!loggedIn" :style="loginStyles" href="#" @click.prevent="loginBanter">Login</a>
-    <a v-else @click="logout()" :style="loginStyles" href="#"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    <a v-if="!loggedIn" :style="loginStyles" href="#" @click.prevent="connectLogin">Login</a>
+    <a v-else @click="connectLogout()" :style="loginStyles" href="#"><i class="fas fa-sign-out-alt"></i> Logout</a>
 </span>
 <div v-else>
   <div v-if="page === 'invoice'" :key="componentKey">
@@ -70,11 +70,14 @@ export default {
       loaded: false,
       showLsat: false,
       componentKey: 0,
-      message: 'Loading invoice data - please wait...'
+      message: ''
     }
   },
   watch: {
-    paymentChallenge (paymentChallenge, oldInvoice) {
+    myProfile: function (profile, oldProfile) {
+      this.$emit('paymentEvent', { returnCode: 'connect-login-session', profile: profile })
+    },
+    paymentChallenge: function (paymentChallenge, oldInvoice) {
       console.log(`We have ${paymentChallenge} fruits now, yay!`)
       if (!paymentChallenge) {
         return
@@ -100,16 +103,18 @@ export default {
     }
   },
   mounted () {
-    this.$store.dispatch('stacksStore/fetchWalletInfo').then((wallet) => {
-      console.log(wallet)
-    })
     const paymentConfig = this.parseConfiguration()
     this.lookAndFeel = paymentConfig.lookAndFeel
     if (paymentConfig.opcode === 'mint-token') {
       this.mintToken(paymentConfig)
-    } else if (paymentConfig.opcode === 'login') {
-      this.page = 'login'
-      this.loaded = true
+    } else if (paymentConfig.opcode === 'connect-deploy-contract') {
+      this.deployContract(paymentConfig)
+    } else if (paymentConfig.opcode === 'connect-login') {
+      this.connectLogin()
+    } else if (paymentConfig.opcode === 'connect-logout') {
+      this.connectLogout()
+    } else if (paymentConfig.opcode === 'connect-session') {
+      this.connectSession()
     } else if (paymentConfig.opcode === 'mint-price') {
       this.getEthContractData()
     } else if (paymentConfig.opcode === 'administer-contract') {
@@ -128,27 +133,25 @@ export default {
   beforeDestroy () {
   },
   methods: {
-    loginBanter: function () {
-      this.$store.dispatch('stacksStore/startLogin')
-      this.$emit('login')
-      const $self = this
-      let counter = 0
-      const intval = setInterval(function () {
-        const myProfile = $self.$store.getters['stacksStore/getMyProfile']
-        if (myProfile.loggedIn) {
-          clearInterval(intval)
-        }
-        if (counter === 200) {
-          clearInterval(intval)
-        }
-        counter++
-      }, 1000)
+    connectLogin: function () {
+      const myProfile = this.$store.getters['authStore/getMyProfile']
+      if (myProfile.loggedIn) {
+        this.$emit('connect-login', myProfile)
+      } else {
+        this.$store.dispatch('authStore/startLogin')
+      }
     },
-    logout () {
-      this.$store.dispatch('stacksStore/startLogout').then(() => {
+    connectSession () {
+      this.$store.dispatch('authStore/fetchMyAccount').then((profile) => {
+        this.$emit('paymentEvent', { returnCode: 'connect-login-session', profile: profile })
+        console.log(profile)
+      })
+    },
+    connectLogout () {
+      this.$store.dispatch('authStore/startLogout').then((profile) => {
         localStorage.clear()
         sessionStorage.clear()
-        this.$emit('logout')
+        this.$emit('paymentEvent', { returnCode: 'connect-logout-success', profile: profile })
       })
     },
     getEthContractData: function () {
@@ -168,8 +171,8 @@ export default {
     },
     mintToken: function (configuration) {
       if (configuration.paymentOption === 'stacks') {
-        this.$store.dispatch('stacksStore/fetchWalletInfo').then((wallet) => {
-          this.mintTokenStacks(configuration, wallet)
+        this.$store.dispatch('authStore/fetchMyAccount').then((profile) => {
+          this.mintTokenStacks(configuration, profile.wallet)
         })
       } else {
         this.mintTokenEthereum(configuration)
@@ -227,7 +230,25 @@ export default {
         this.$emit('mintEvent', { opcode: 'stx-mint-error', message: e.message })
       })
     },
-
+    deployContract: function (configuration) {
+      let action = 'stacksStore/deployContractBlockstack'
+      if (configuration.provider && configuration.provider === 'risidio') {
+        action = 'stacksStore/deployContractRisidio'
+      }
+      const profile = this.$store.getters['stacksStore/deployContract']
+      configuration.data.profile = profile
+      this.$store.dispatch(action, configuration.data).then((result) => {
+        this.page = 'result'
+        if (!result) result = {}
+        result.returnCode = 'stx-deploy-confirmed'
+        this.$emit('paymentEvent', result)
+        this.result = result
+      }).catch((e) => {
+        this.message = e.message
+        this.page = 'error'
+        this.$emit('paymentEvent', { returnCode: 'stx-deploy-error', message: e.message })
+      })
+    },
     doContinue: function () {
       this.$emit('administerEvent', { opcode: 'administer-contract' })
     },
@@ -260,8 +281,12 @@ export default {
       const paymentChallenge = this.$store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
       return paymentChallenge
     },
+    myProfile () {
+      const myProfile = this.$store.getters[LSAT_CONSTANTS.KEY_PROFILE]
+      return myProfile
+    },
     loggedIn () {
-      const myProfile = this.$store.getters['stacksStore/getMyProfile']
+      const myProfile = this.$store.getters[LSAT_CONSTANTS.KEY_PROFILE]
       return myProfile.loggedIn
     }
   }

@@ -20,36 +20,6 @@ const setAddresses = function () {
     NFT_CONTRACT_ADDRESS = config.addresses.ethContractAddress
   }
 }
-/**
-const NFT_ABI1 = [{
-  constant: false,
-  inputs: [
-    {
-      name: '_to',
-      type: 'address'
-    }
-  ],
-  name: 'mintTo',
-  outputs: [],
-  payable: false,
-  stateMutability: 'nonpayable',
-  type: 'function'
-}, {
-  constant: true,
-  inputs: [],
-  name: 'baseTokenURI',
-  outputs: [
-    {
-      internalType: 'string',
-      name: '',
-      type: 'string'
-    }
-  ],
-  payable: false,
-  stateMutability: 'view',
-  type: 'function'
-}]
-**/
 const getWeb3 = function () {
   return new Promise((resolve, reject) => {
     const ethereum = window.ethereum
@@ -221,10 +191,10 @@ const ethereumStore = {
           if (!web3) {
             reject(new Error('no ethereum provider registered - please download Meta Mask to continue!'))
           }
-          web3.eth.getAccounts(function (error, accounts) {
-            if (error) {
-              reject(new Error('Please check you are logged in to meta mask - then try again?'))
-            } else if (!accounts || accounts.length === 0) {
+          web3.eth.getAccounts().then(accounts => {
+            const firstAccount = accounts[0]
+            console.log('A: ' + firstAccount)
+            if (!accounts || accounts.length === 0) {
               reject(new Error('No accounts - not logged in to wallet'))
             } else {
               if (data.opcode === 'send-payment') {
@@ -243,6 +213,8 @@ const ethereumStore = {
                 makeWithdrawal(web3, data, accounts[0], resolve, reject)
               }
             }
+          }).catch((error) => {
+            reject(new Error('No accounts - not logged in to wallet' + error))
           })
         })
       })

@@ -146,7 +146,7 @@ export default {
   },
   computed: {
     myProfile () {
-      const blockstackProfile = this.$store.getters['stacksStore/getMyProfile']
+      const blockstackProfile = this.$store.getters['authStore/getMyProfile']
       return blockstackProfile
     },
     currentTime () {
