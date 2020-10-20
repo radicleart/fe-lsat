@@ -188,7 +188,6 @@ export default new Vuex.Store({
       return new Promise((resolve, reject) => {
         commit('addHeaders', authHeaders(configuration))
         commit('addPaymentConfig', configuration)
-        $self.dispatch('stacksStore/fetchMacsWalletBalance')
         $self.dispatch('fetchRates').then(() => {
           commit('addPaymentChallenge', initPaymentChallenge(state.rateObject, state.configuration.creditAttributes))
           resolve({ tokenAcquired: false, resource: state.paymentChallenge })

@@ -104,6 +104,7 @@ export default {
   },
   mounted () {
     const paymentConfig = this.parseConfiguration()
+    this.$store.dispatch('stacksStore/fetchMacsWalletInfo')
     this.lookAndFeel = paymentConfig.lookAndFeel
     if (paymentConfig.opcode === 'mint-token') {
       this.mintToken(paymentConfig)

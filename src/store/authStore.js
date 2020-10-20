@@ -13,7 +13,7 @@ import {
 import axios from 'axios'
 
 const BLOCKSTACK_LOGIN = Number(process.env.VUE_APP_BLOCKSTACK_LOGIN)
-const MESH_API = process.env.VUE_APP_API_RISIDIO + '/mesh'
+const MESH_API = process.env.VUE_APP_API_RISIDIO_REMOTE + '/mesh'
 const userSession = new UserSession()
 const origin = window.location.origin
 const getStacksAccount = function (appPrivateKey) {
@@ -164,8 +164,7 @@ const authStore = {
     appName: 'Risidio Mesh',
     appLogo: '/img/logo/Risidio_logo_256x256.png',
     authHeaders: null,
-    networkId: 'testnet',
-    provider: 'risidio'
+    networkId: 'testnet'
   },
   getters: {
     getMyProfile: state => {
@@ -178,9 +177,6 @@ const authStore = {
     },
     getUserWallet: (state) => {
       return state.userWallet
-    },
-    getProvider: (state) => {
-      return state.provider
     },
     getNetworkId: (state) => {
       return state.networkId
@@ -198,9 +194,6 @@ const authStore = {
     },
     setAuthResponse (state, o) {
       state.authResponse = o
-    },
-    setProvider (state, provider) {
-      state.provider = provider
     },
     setNetworkId (state, networkId) {
       state.networkId = networkId

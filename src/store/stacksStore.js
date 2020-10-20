@@ -93,8 +93,7 @@ const stacksStore = {
           httpMethod: 'get',
           postData: null
         }
-        const provider = store.getters['authStore/getProvider']
-        const useApi = (provider === 'risidio') ? MESH_API_RISIDIO : MESH_API
+        const useApi = (state.provider === 'risidio') ? MESH_API_RISIDIO : MESH_API
         axios.post(useApi + '/v2/accounts', data).then(response => {
           macsWallet.nonce = response.data.nonce
           macsWallet.balance = getAmountStx(parseInt(response.data.balance, 16))
@@ -394,10 +393,8 @@ const stacksStore = {
             txOptions.result = response.data
             txOptions.provider = 'risidio'
             txOptions.txtype = 'deployment'
-            store.dispatch('rstackStore/saveToGaia', txOptions).then(() => {
-              resolve(txOptions)
-              dispatch('stacksStore/fetchMacsWalletInfo')
-            })
+            dispatch('stacksStore/fetchMacsWalletInfo')
+            resolve(txOptions)
           }).catch((error) => {
             reject(error)
           })
