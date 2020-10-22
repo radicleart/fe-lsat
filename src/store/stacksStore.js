@@ -194,7 +194,7 @@ const stacksStore = {
           }
         }).catch((error) => {
           if (error.response) {
-            if (error.response.data.message.indexOf('NotEnoughFunds')) {
+            if (error.response.data.message.indexOf('NotEnoughFunds') > -1) {
               reject(new Error('Not enough funds in the wallet to send this - try decreasing the amount?'))
             } else {
               reject(error.response.data.message)
