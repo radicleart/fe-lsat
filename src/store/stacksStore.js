@@ -16,8 +16,10 @@ let STX_PAYMENT_ADDRESS = process.env.VUE_APP_STACKS_PAYMENT_ADDRESS
 let STX_CONTRACT_ADDRESS = process.env.VUE_APP_STACKS_CONTRACT_ADDRESS
 let STX_CONTRACT_NAME = process.env.VUE_APP_STACKS_CONTRACT_NAME
 const network = new StacksTestnet()
-const MESH_API = process.env.VUE_APP_API_RISIDIO + '/mesh'
-const MESH_API_RISIDIO = process.env.VUE_APP_API_RISIDIO_REMOTE + '/mesh'
+
+const MESH_API = process.env.VUE_APP_API_MESH
+const STACKS_API = process.env.VUE_APP_API_STACKS
+
 const mac = JSON.parse(process.env.VUE_APP_WALLET_MAC || '')
 const precision = 1000000
 
@@ -93,18 +95,26 @@ const stacksStore = {
           httpMethod: 'get',
           postData: null
         }
-        const useApi = (state.provider === 'risidio') ? MESH_API_RISIDIO : MESH_API
-        axios.post(useApi + '/v2/accounts', data).then(response => {
+        axios.post(MESH_API + '/v2/accounts', data).then(response => {
           macsWallet.nonce = response.data.nonce
           macsWallet.balance = getAmountStx(parseInt(response.data.balance, 16))
           commit('setMacsWallet', macsWallet)
           resolve(macsWallet)
-        }).catch((error) => {
-          reject(error)
+        }).catch(() => {
+          const macsWallet = state.macsWallet
+          const useApi = STACKS_API + '/v2/accounts/' + macsWallet.keyInfo.address
+          axios.get(useApi).then(response => {
+            macsWallet.nonce = response.data.nonce
+            macsWallet.balance = getAmountStx(parseInt(response.data.balance, 16))
+            commit('setMacsWallet', macsWallet)
+            resolve(macsWallet)
+          }).catch((error) => {
+            reject(error)
+          })
         })
       })
     },
-    callContractRisidio ({ state }, data) {
+    callContractRisidio ({ state, commit }, data) {
       return new Promise((resolve, reject) => {
         setAddresses()
         const profile = store.getters['authStore/getMyProfile']
@@ -136,29 +146,37 @@ const stacksStore = {
             })
           } else {
             const txdata = new Uint8Array(transaction.serialize())
-            const useApi = (state.provider === 'risidio') ? MESH_API_RISIDIO : MESH_API
             const headers = {
               'Content-Type': 'application/octet-stream'
             }
-            axios.post(useApi + '/v2/broadcast', txdata, { headers: headers }).then(response => {
+            axios.post(MESH_API + '/v2/broadcast', txdata, { headers: headers }).then(response => {
               const result = {
                 txId: response.data,
                 network: 15,
                 tokenId: Math.floor(Math.random() * Math.floor(1000000000))
               }
               resolve(result)
-            }).catch((error) => {
-              if (error.response) {
-                if (error.response.data.message.indexOf('NotEnoughFunds') > -1) {
-                  reject(new Error('Not enough funds in the wallet to send this - try decreasing the amount?'))
-                } else if (error.response.data.message.indexOf('ConflictingNonceInMempool') > -1) {
-                  reject(new Error('Conflicting Nonce In Mempool!'))
-                } else {
-                  reject(new Error(error.response.data.message))
+            }).catch(() => {
+              axios.post(STACKS_API + '/v2/transactions', txdata, { headers: { 'Content-Type': 'text/plain' } }).then(response => {
+                const result = {
+                  txId: response.data,
+                  network: 15,
+                  tokenId: Math.floor(Math.random() * Math.floor(1000000000))
                 }
-              } else {
-                reject(error.message)
-              }
+                resolve(result)
+              }).catch((error) => {
+                if (error.response) {
+                  if (error.response.data.message.indexOf('NotEnoughFunds') > -1) {
+                    reject(new Error('Not enough funds in the wallet to send this - try decreasing the amount?'))
+                  } else if (error.response.data.message.indexOf('ConflictingNonceInMempool') > -1) {
+                    reject(new Error('Conflicting Nonce In Mempool!'))
+                  } else {
+                    reject(new Error(error.response.data.message))
+                  }
+                } else {
+                  reject(error.message)
+                }
+              })
             })
           }
         })
@@ -167,16 +185,17 @@ const stacksStore = {
     callContractRisidioReadOnly ({ state }, data) {
       return new Promise((resolve, reject) => {
         setAddresses()
-        const txoptions = {
-          path: '/v2/contracts/call-read/' + STX_CONTRACT_ADDRESS + '/' + STX_CONTRACT_NAME + '/' + data.functionName,
-          httpMethod: 'POST',
-          postData: {
-            arguments: (data.functionArgs) ? data.functionArgs : [],
-            sender: STX_PAYMENT_ADDRESS
-          }
+        const postData = {
+          arguments: (data.functionArgs) ? data.functionArgs : [],
+          sender: STX_PAYMENT_ADDRESS
         }
-        const useApi = (state.provider === 'risidio') ? MESH_API_RISIDIO : MESH_API
-        axios.post(useApi + '/v2/accounts', txoptions).then(response => {
+        const apiPath = '/v2/contracts/call-read/' + STX_CONTRACT_ADDRESS + '/' + STX_CONTRACT_NAME + '/' + data.functionName
+        const txoptions = {
+          path: apiPath,
+          httpMethod: 'POST',
+          postData: postData
+        }
+        axios.post(MESH_API + '/v2/accounts', txoptions).then(response => {
           if (!response.data.okay) {
             reject(new Error('not okay'))
           } else {
@@ -192,16 +211,29 @@ const stacksStore = {
             }
             resolve(data)
           }
-        }).catch((error) => {
-          if (error.response) {
-            if (error.response.data.message.indexOf('NotEnoughFunds') > -1) {
-              reject(new Error('Not enough funds in the wallet to send this - try decreasing the amount?'))
+        }).catch(() => {
+          axios.post(STACKS_API + apiPath, postData).then(response => {
+            data.senderKey = null
+            if (data.functionName === 'get-mint-price') {
+              const res = getAmountStx(parseInt(response.data.result, 16))
+              // const res = unwrapStrings(response.data.result) // response.data.result.substring(0)
+              data.result = res
             } else {
-              reject(error.response.data.message)
+              const res = unwrapStrings(response.data.result) // response.data.result.substring(2)
+              data.result = res
             }
-          } else {
-            reject(error.message)
-          }
+            resolve(data)
+          }).catch((error) => {
+            if (error.response) {
+              if (error.response.data.message.indexOf('NotEnoughFunds') > -1) {
+                reject(new Error('Not enough funds in the wallet to send this - try decreasing the amount?'))
+              } else {
+                reject(error.response.data.message)
+              }
+            } else {
+              reject(error.message)
+            }
+          })
         })
       })
     },
@@ -280,23 +312,27 @@ const stacksStore = {
           const headers = {
             'Content-Type': 'application/octet-stream'
           }
-          const useApi = (state.provider === 'risidio') ? MESH_API_RISIDIO : MESH_API
-          axios.post(useApi + '/v2/broadcast', txdata, { headers: headers }).then(response => {
+          axios.post(MESH_API + '/v2/broadcast', txdata, { headers: headers }).then(response => {
             resolve(response.data)
-          }).catch((error) => {
-            if (error.response) {
-              if (error.response.data.message.indexOf('BadNonce') > -1) {
-                reject(new Error('BadNonce! ' + error.response.data.message.substring(100)))
-              } else if (error.response.data.message.indexOf('NotEnoughFunds') > -1) {
-                reject(new Error('Not enough funds in the wallet to send this - try decreasing the amount?'))
-              } else if (error.response.data.message.indexOf('ConflictingNonceInMempool') > -1) {
-                reject(new Error('Error: ConflictingNonceInMempool'))
+          }).catch(() => {
+            const useApi = STACKS_API + '/v2/transactions'
+            axios.post(useApi, txdata).then((response) => {
+              resolve(response.data)
+            }).catch((error) => {
+              if (error.response) {
+                if (error.response.data.message.indexOf('BadNonce') > -1) {
+                  reject(new Error('BadNonce! ' + error.response.data.message.substring(100)))
+                } else if (error.response.data.message.indexOf('NotEnoughFunds') > -1) {
+                  reject(new Error('Not enough funds in the wallet to send this - try decreasing the amount?'))
+                } else if (error.response.data.message.indexOf('ConflictingNonceInMempool') > -1) {
+                  reject(new Error('Error: ConflictingNonceInMempool'))
+                } else {
+                  reject(error.response.data.message)
+                }
               } else {
-                reject(error.response.data.message)
+                reject(error.message)
               }
-            } else {
-              reject(error.message)
-            }
+            })
           })
         })
       })
@@ -329,18 +365,21 @@ const stacksStore = {
     },
     fetchFeeEstimate ({ state, commit }, data) {
       return new Promise((resolve, reject) => {
-        const useApi = (state.provider === 'risidio') ? MESH_API_RISIDIO : MESH_API
         const data = { path: '/v2/fees/transfer', httpMethod: 'get', postData: null }
-        axios.post(useApi + '/v2/accounts', data).then(response => {
+        axios.post(MESH_API + '/v2/accounts', data).then(response => {
           resolve(response.data)
           commit('setFeeEstimate', response.data)
-        }).catch((error) => {
-          if (error.response && error.response.data) {
-            const msg = error.response.data.status + ' - ' + error.response.data.message
-            reject(msg)
-          } else {
-            reject(error)
-          }
+        }).catch(() => {
+          axios.get(STACKS_API + '/v2/fees/transfer').then((response) => {
+            resolve(response.data)
+          }).catch((error) => {
+            if (error.response && error.response.data) {
+              const msg = error.response.data.status + ' - ' + error.response.data.message
+              reject(msg)
+            } else {
+              reject(error)
+            }
+          })
         })
       })
     },
@@ -386,8 +425,7 @@ const stacksStore = {
           const headers = {
             'Content-Type': 'application/octet-stream'
           }
-          const useApi = (state.provider === 'risidio') ? MESH_API_RISIDIO : MESH_API
-          axios.post(useApi + '/v2/broadcast', txdata, { headers: headers }).then(response => {
+          axios.post(MESH_API + '/v2/broadcast', txdata, { headers: headers }).then(response => {
             txOptions.senderKey = null
             txOptions.fromAddress = data.address
             txOptions.result = response.data
@@ -395,8 +433,19 @@ const stacksStore = {
             txOptions.txtype = 'deployment'
             dispatch('stacksStore/fetchMacsWalletInfo')
             resolve(txOptions)
-          }).catch((error) => {
-            reject(error)
+          }).catch(() => {
+            const useApi = STACKS_API + '/v2/transactions'
+            axios.post(useApi, txdata).then((response) => {
+              txOptions.senderKey = null
+              txOptions.fromAddress = data.address
+              txOptions.result = response.data
+              txOptions.provider = 'risidio'
+              txOptions.txtype = 'deployment'
+              dispatch('stacksStore/fetchMacsWalletInfo')
+              resolve(txOptions)
+            }).catch((error) => {
+              reject(error)
+            })
           })
         }).catch((error) => {
           reject(error)

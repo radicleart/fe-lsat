@@ -3,7 +3,7 @@ import axios from 'axios'
 import { LSAT_CONSTANTS } from '@/lsat-constants'
 import _ from 'lodash'
 
-const API_PATH = process.env.VUE_APP_API_RISIDIO
+const LSAT_PATH = process.env.VUE_APP_API_LSAT
 const ETH_RATE_PATH = process.env.VUE_APP_ETH_RATE_PATH2
 const BTC_RATE_PATH = process.env.VUE_APP_BTC_RATE_PATH
 const headers = function () {
@@ -14,7 +14,7 @@ const lsatHelper = {
     return new Promise((resolve) => {
       const request = {
         method: 'get',
-        url: API_PATH + BTC_RATE_PATH,
+        url: LSAT_PATH + BTC_RATE_PATH,
         headers: headers()
       }
       axios(request).then(response => {

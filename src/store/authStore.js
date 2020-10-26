@@ -12,8 +12,10 @@ import {
 } from '@blockstack/stacks-transactions'
 import axios from 'axios'
 
+const MESH_API = process.env.VUE_APP_API_MESH
+const STACKS_API = process.env.VUE_APP_API_STACKS
+
 const BLOCKSTACK_LOGIN = Number(process.env.VUE_APP_BLOCKSTACK_LOGIN)
-const MESH_API = process.env.VUE_APP_API_RISIDIO_REMOTE + '/mesh'
 const userSession = new UserSession()
 const origin = window.location.origin
 const getStacksAccount = function (appPrivateKey) {
@@ -66,9 +68,22 @@ const fetchUserWallet = function (profile) {
       }
       resolve(wallet)
     }).catch((error) => {
-      console.log(error)
-      reject()
-    })
+      const useApi = STACKS_API + '/v2/accounts/' + profile.stxAddress
+      axios.get(useApi).then(response => {
+        const balance = getAmountStx(parseInt(response.data.balance, 16))
+        const wallet = {
+          keyInfo: {
+            address: profile.stxAddress
+          },
+          balance: balance,
+          nonce: response.data.nonce,
+          label: profile.username
+        }
+        resolve(wallet)
+      }).catch(() => {
+        reject()
+      })
+})
   })
 }
 const getProfile = function () {
@@ -116,7 +131,7 @@ const getProfile = function () {
         stxAppAddress: stxAppAddress,
         senderKey: account.privateKey,
         showAdmin: showAdmin,
-        superAdmin: uname === 'mijoco.id.blockstack',
+        superAdmin: uname === 'radicle_art.id.blockstack',
         name: name,
         description: person.description(),
         avatarUrl: avatarUrl,
