@@ -104,7 +104,7 @@ export default {
   },
   mounted () {
     const paymentConfig = this.parseConfiguration()
-    this.$store.dispatch('stacksStore/fetchMacsWalletInfo')
+    this.$store.dispatch('wcStacksStore/fetchMacsWalletInfo')
     this.lookAndFeel = paymentConfig.lookAndFeel
     if (paymentConfig.opcode === 'mint-token') {
       this.mintToken(paymentConfig)
@@ -116,6 +116,8 @@ export default {
       this.connectLogout()
     } else if (paymentConfig.opcode === 'connect-session') {
       this.connectSession()
+    } else if (paymentConfig.opcode === 'connect-application') {
+      this.connectApplication(paymentConfig.data)
     } else if (paymentConfig.opcode === 'mint-price') {
       this.getEthContractData()
     } else if (paymentConfig.opcode === 'administer-contract') {
@@ -141,6 +143,19 @@ export default {
       } else {
         this.$store.dispatch('authStore/startLogin')
       }
+    },
+    connectApplication (data) {
+      this.$store.dispatch('wcStacksStore/callContractBlockstack', data).then((result) => {
+        this.$emit('paymentEvent', { returnCode: 'connect-application-success', result: result })
+        console.log(result)
+      }).catch(() => {
+        this.$store.dispatch('wcStacksStore/callContractRisidio', data).then((result) => {
+          this.$emit('paymentEvent', { returnCode: 'connect-application-success', result: result })
+          console.log(result)
+        }).catch((error) => {
+          this.$emit('paymentEvent', { returnCode: 'connect-application-failure', error: error })
+        })
+      })
     },
     connectSession () {
       this.$store.dispatch('authStore/fetchMyAccount').then((profile) => {
@@ -214,9 +229,9 @@ export default {
         functionName: 'create',
         functionArgs: [assetHash]
       }
-      let action = 'stacksStore/callContractBlockstack'
+      let action = 'wcStacksStore/callContractBlockstack'
       if (configuration.provider && configuration.provider === 'risidio') {
-        action = 'stacksStore/callContractRisidio'
+        action = 'wcStacksStore/callContractRisidio'
       }
       this.$store.dispatch(action, data).then((result) => {
         this.page = 'result'
@@ -232,11 +247,11 @@ export default {
       })
     },
     deployContract: function (configuration) {
-      let action = 'stacksStore/deployContractBlockstack'
+      let action = 'wcStacksStore/deployContractBlockstack'
       if (configuration.provider && configuration.provider === 'risidio') {
-        action = 'stacksStore/deployContractRisidio'
+        action = 'wcStacksStore/deployContractRisidio'
       }
-      const profile = this.$store.getters['stacksStore/deployContract']
+      const profile = this.$store.getters['wcStacksStore/deployContract']
       configuration.data.profile = profile
       this.$store.dispatch(action, configuration.data).then((result) => {
         this.page = 'result'

@@ -50,6 +50,38 @@ function unwrapStrings (tuple) {
   const name = Buffer.from(names[0].substring(2), 'hex').toString()
   return name
 }
+const resolveError = function (reject, error) {
+  if (!error) {
+    reject('Error happened')
+  }
+  if (error.response && error.response.data) {
+    if (error.response.data.error) {
+      let msg = 'Transaction rejected: ' + error.response.data.reason
+      if (error.response.data.reason_data) {
+        msg += JSON.stringify(error.response.data.reason_data)
+      }
+      reject(new Error(msg))
+    } else if (error.response.data.message) {
+      if (error.response.data.message.indexOf('NotEnoughFunds') > -1) {
+        reject(new Error('Not enough funds in the wallet to send this - try decreasing the amount?'))
+      } else if (error.response.data.message.indexOf('ConflictingNonceInMempool') > -1) {
+        reject(new Error('Conflicting Nonce In Mempool!'))
+      } else {
+        reject(new Error(error.response.data.message))
+      }
+    } else {
+      if (error.response && error.response.data) {
+        reject(new Error(error.response.data))
+      } else {
+        reject(new Error('no error.response.data'))
+      }
+    }
+  } else if (error.message) {
+    reject(error.message)
+  } else {
+    reject(error)
+  }
+}
 
 const getAmountStx = function (amountMicroStx) {
   try {
@@ -63,7 +95,7 @@ const getAmountStx = function (amountMicroStx) {
     return 0
   }
 }
-const stacksStore = {
+const wcStacksStore = {
   namespaced: true,
   state: {
     myProfile: {
@@ -78,7 +110,7 @@ const stacksStore = {
   },
   getters: {
     getMacsWallet: state => {
-      return state.wallet
+      return state.macsWallet
     }
   },
   mutations: {
@@ -114,28 +146,63 @@ const stacksStore = {
         })
       })
     },
-    callContractRisidio ({ state, commit }, data) {
+    callContractBlockstack ({ state }, data) {
+      // see https://docs.blockstack.org/smart-contracts/signing-transactions
+      // Blocked a frame with origin "https://loopbomb.risidio.com" from accessing a cross-origin frame.
+      return new Promise((resolve, reject) => {
+        const contractAddress = (data.contractAddress) ? data.contractAddress : STX_CONTRACT_ADDRESS
+        const contractName = (data.contractName) ? data.contractName : STX_CONTRACT_NAME
+        const nonce = new BigNum(state.macsWallet.nonce)
+        const txoptions = {
+          contractAddress: contractAddress,
+          contractName: contractName,
+          functionName: data.functionName,
+          functionArgs: (data.functionArgs) ? data.functionArgs : [],
+          fee: new BigNum(1800),
+          senderKey: state.macsWallet.keyInfo.privateKey,
+          nonce: new BigNum(nonce),
+          validateWithAbi: false,
+          network: new StacksTestnet(),
+          appDetails: {
+            name: state.appName,
+            icon: state.appLogo
+          },
+          finished: response => {
+            const result = {
+              txId: response.data,
+              network: 15,
+              tokenId: Math.floor(Math.random() * Math.floor(1000000000))
+            }
+            resolve(result)
+          }
+        }
+        openContractCall(txoptions)
+      })
+    },
+    callContractRisidio ({ state }, data) {
       return new Promise((resolve, reject) => {
         setAddresses()
+        const contractAddress = (data.contractAddress) ? data.contractAddress : STX_CONTRACT_ADDRESS
+        const contractName = (data.contractName) ? data.contractName : STX_CONTRACT_NAME
         const profile = store.getters['authStore/getMyProfile']
         if (!data.senderKey) {
           data.senderKey = profile.senderKey
         }
-        let nonce = new BigNum(state.wallet.nonce)
+        let nonce = new BigNum(state.macsWallet.nonce)
         if (data && data.action === 'inc-nonce') {
-          nonce = new BigNum(state.wallet.nonce + 1)
+          nonce = new BigNum(state.macsWallet.nonce + 1)
         }
         // 5000 000 000 000 000
         const txOptions = {
-          contractAddress: STX_CONTRACT_ADDRESS,
-          contractName: STX_CONTRACT_NAME,
+          contractAddress: contractAddress,
+          contractName: contractName,
           functionName: data.functionName,
           functionArgs: (data.functionArgs) ? data.functionArgs : [],
           fee: new BigNum(1800),
-          senderKey: state.wallet.keyInfo.privateKey,
-          nonce: new BigNum(nonce),
-          validateWithAbi: false,
-          network
+          senderKey: state.macsWallet.keyInfo.privateKey,
+          nonce: new BigNum(nonce)
+          // validateWithAbi: false,
+          // network
         }
         makeContractCall(txOptions).then((transaction) => {
           if (state.provider !== 'risidio') {
@@ -165,17 +232,7 @@ const stacksStore = {
                 }
                 resolve(result)
               }).catch((error) => {
-                if (error.response) {
-                  if (error.response.data.message.indexOf('NotEnoughFunds') > -1) {
-                    reject(new Error('Not enough funds in the wallet to send this - try decreasing the amount?'))
-                  } else if (error.response.data.message.indexOf('ConflictingNonceInMempool') > -1) {
-                    reject(new Error('Conflicting Nonce In Mempool!'))
-                  } else {
-                    reject(new Error(error.response.data.message))
-                  }
-                } else {
-                  reject(error.message)
-                }
+                resolveError(reject, error)
               })
             })
           }
@@ -226,7 +283,7 @@ const stacksStore = {
           }).catch((error) => {
             if (error.response) {
               if (error.response.data.message.indexOf('NotEnoughFunds') > -1) {
-                reject(new Error('Not enough funds in the wallet to send this - try decreasing the amount?'))
+                reject(new Error('Not enough funds in the macsWallet to send this - try decreasing the amount?'))
               } else {
                 reject(error.response.data.message)
               }
@@ -244,37 +301,12 @@ const stacksStore = {
           contractName: STX_CONTRACT_NAME,
           functionName: data.functionName,
           functionArgs: (data.functionArgs) ? data.functionArgs : [],
-          senderAddress: state.wallet.keyInfo.address
+          senderAddress: state.macsWallet.keyInfo.address
         }).then((result) => {
           resolve(result)
         }).catch((error) => {
           reject(error)
         })
-      })
-    },
-    callContractBlockstack ({ state }, data) {
-      // see https://docs.blockstack.org/smart-contracts/signing-transactions
-      // Blocked a frame with origin "https://loopbomb.risidio.com" from accessing a cross-origin frame.
-      return new Promise((resolve, reject) => {
-        const txoptions = {
-          contractAddress: STX_CONTRACT_ADDRESS,
-          contractName: STX_CONTRACT_NAME,
-          functionName: data.functionName,
-          functionArgs: (data.functionArgs) ? data.functionArgs : [],
-          appDetails: {
-            name: state.appName,
-            icon: state.appLogo
-          },
-          finished: response => {
-            const result = {
-              txId: response.data,
-              network: 15,
-              tokenId: Math.floor(Math.random() * Math.floor(1000000000))
-            }
-            resolve(result)
-          }
-        }
-        openContractCall(txoptions)
       })
     },
     makeTransferRisidio ({ state }, data) {
@@ -286,16 +318,16 @@ const stacksStore = {
         amount = new BigNum(amount)
 
         // amount = amount.div(new BigNum(1000000))
-        const senderKey = state.wallet.keyInfo.privateKey
+        const senderKey = state.macsWallet.keyInfo.privateKey
         let recipient = STX_PAYMENT_ADDRESS
         const configuration = store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
         if (configuration.addresses && configuration.addresses.stxPaymentAddress) {
           recipient = configuration.addresses.stxPaymentAddress
         }
 
-        let nonce = new BigNum(state.wallet.nonce)
+        let nonce = new BigNum(state.macsWallet.nonce)
         if (data && data.action === 'inc-nonce') {
-          nonce = new BigNum(state.wallet.nonce + 1)
+          nonce = new BigNum(state.macsWallet.nonce + 1)
         }
 
         const txOptions = {
@@ -323,7 +355,7 @@ const stacksStore = {
                 if (error.response.data.message.indexOf('BadNonce') > -1) {
                   reject(new Error('BadNonce! ' + error.response.data.message.substring(100)))
                 } else if (error.response.data.message.indexOf('NotEnoughFunds') > -1) {
-                  reject(new Error('Not enough funds in the wallet to send this - try decreasing the amount?'))
+                  reject(new Error('Not enough funds in the macsWallet to send this - try decreasing the amount?'))
                 } else if (error.response.data.message.indexOf('ConflictingNonceInMempool') > -1) {
                   reject(new Error('Error: ConflictingNonceInMempool'))
                 } else {
@@ -398,7 +430,7 @@ const stacksStore = {
             console.log(trans.txid)
             store.dispatch('rstackStore/saveToGaia', trans).then(() => {
               data.result = trans
-              store.dispatch('stacksStore/fetchMacsWalletInfo')
+              store.dispatch('wcStacksStore/fetchMacsWalletInfo')
               resolve(data)
             })
           }
@@ -431,7 +463,7 @@ const stacksStore = {
             txOptions.result = response.data
             txOptions.provider = 'risidio'
             txOptions.txtype = 'deployment'
-            dispatch('stacksStore/fetchMacsWalletInfo')
+            dispatch('wcStacksStore/fetchMacsWalletInfo')
             resolve(txOptions)
           }).catch(() => {
             const useApi = STACKS_API + '/v2/transactions'
@@ -441,7 +473,7 @@ const stacksStore = {
               txOptions.result = response.data
               txOptions.provider = 'risidio'
               txOptions.txtype = 'deployment'
-              dispatch('stacksStore/fetchMacsWalletInfo')
+              dispatch('wcStacksStore/fetchMacsWalletInfo')
               resolve(txOptions)
             }).catch((error) => {
               reject(error)
@@ -454,4 +486,4 @@ const stacksStore = {
     }
   }
 }
-export default stacksStore
+export default wcStacksStore

@@ -59,14 +59,14 @@ export default {
     }
   },
   mounted () {
-    this.$store.dispatch('stacksStore/callContractRisidioReadOnly', { functionName: 'get-base-token-uri' }).then((data) => {
+    this.$store.dispatch('wcStacksStore/callContractRisidioReadOnly', { functionName: 'get-base-token-uri' }).then((data) => {
       this.loading = false
       this.baseTokenURI = data.result
     }).catch((e) => {
       this.loading = false
       this.resultMessage = e.message
     })
-    this.$store.dispatch('stacksStore/callContractRisidioReadOnly', { functionName: 'get-mint-price' }).then((data) => {
+    this.$store.dispatch('wcStacksStore/callContractRisidioReadOnly', { functionName: 'get-mint-price' }).then((data) => {
       this.loading = false
       this.mintPrice = data.result
     }).catch((e) => {
@@ -84,7 +84,7 @@ export default {
       const config = { opcode: 'eth-set-base-token-uri', baseTokenURI: this.baseTokenURI }
       this.waitingMessage = 'Setting base token url on your contract - takes a minute or so..'
       this.loading = true
-      this.$store.dispatch('stacksStore/callContractRisidio', config).then((result) => {
+      this.$store.dispatch('wcStacksStore/callContractRisidio', config).then((result) => {
         this.loading = false
         this.resultMessage = 'result'
       }).catch((e) => {
@@ -97,7 +97,7 @@ export default {
       const config = { opcode: 'eth-make-withdrawal' }
       this.waitingMessage = 'Making a withdrawal - takes a minute or so..'
       this.loading = true
-      this.$store.dispatch('stacksStore/callContractRisidio', config).then((result) => {
+      this.$store.dispatch('wcStacksStore/callContractRisidio', config).then((result) => {
         this.loading = false
         this.resultMessage = 'result'
       }).catch((e) => {
@@ -118,7 +118,7 @@ export default {
 
       this.waitingMessage = 'Setting minting fee on your contract - takes a minute or so..'
       this.loading = true
-      this.$store.dispatch('stacksStore/callContractRisidio', config).then((result) => {
+      this.$store.dispatch('wcStacksStore/callContractRisidio', config).then((result) => {
         this.loading = false
         this.resultMessage = result
       }).catch((e) => {

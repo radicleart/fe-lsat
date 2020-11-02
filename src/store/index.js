@@ -3,7 +3,7 @@ import Vuex from 'vuex'
 import lsatHelper from './lsatHelper'
 import ethereumStore from './ethereumStore'
 import authStore from './authStore'
-import stacksStore from '@/store/stacksStore'
+import wcStacksStore from '@/store/wcStacksStore'
 import {
   UserSession,
   decodeToken
@@ -86,7 +86,7 @@ const initPaymentChallenge = function (rateObject, creditAttributes) {
 export default new Vuex.Store({
   modules: {
     ethereumStore: ethereumStore,
-    stacksStore: stacksStore,
+    wcStacksStore: wcStacksStore,
     authStore: authStore
   },
   state: {

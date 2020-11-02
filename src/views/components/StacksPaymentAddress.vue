@@ -88,9 +88,9 @@ export default {
       this.loading = true
       this.waitingMessage = 'Processing Payment'
       this.$emit('paymentEvent', { opcode: 'stx-payment-begun1' })
-      let action = 'stacksStore/makeTransferRisidio'
+      let action = 'wcStacksStore/makeTransferRisidio'
       if (provider === 'blockstack') {
-        action = 'stacksStore/makeTransferBlockstack'
+        action = 'wcStacksStore/makeTransferBlockstack'
       }
       this.$store.dispatch(action).then((result) => {
         const data = { status: 10, opcode: 'stx-payment-confirmed', result: result.result }
