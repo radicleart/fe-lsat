@@ -35,6 +35,7 @@ import { library } from '@fortawesome/fontawesome-svg-core'
 import { faQrcode, faPlus, faMinus, faEquals, faCopy, faAngleDoubleUp, faAngleDoubleDown } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
+  intCV,
   bufferCV
 } from '@blockstack/stacks-transactions'
 import CryptoJS from 'crypto-js'
@@ -145,17 +146,31 @@ export default {
       }
     },
     connectApplication (data) {
-      this.$store.dispatch('wcStacksStore/callContractBlockstack', data).then((result) => {
-        this.$emit('paymentEvent', { returnCode: 'connect-application-success', result: result })
-        console.log(result)
-      }).catch(() => {
+      const bufArr = []
+      for (let i = 0; i < data.functionArgs.length; i++) {
+        const element = data.functionArgs[i]
+        if (element.startsWith('0x')) {
+          bufArr.push(intCV(element))
+        } else {
+          bufArr.push(bufferCV(Buffer.from(element)))
+        }
+      }
+      data.functionArgs = bufArr
+      if (data.provider === 'risidio') {
         this.$store.dispatch('wcStacksStore/callContractRisidio', data).then((result) => {
           this.$emit('paymentEvent', { returnCode: 'connect-application-success', result: result })
           console.log(result)
         }).catch((error) => {
           this.$emit('paymentEvent', { returnCode: 'connect-application-failure', error: error })
         })
-      })
+      } else {
+        this.$store.dispatch('wcStacksStore/callContractBlockstack', data).then((result) => {
+          this.$emit('paymentEvent', { returnCode: 'connect-application-success', result: result })
+          console.log(result)
+        }).catch((error) => {
+          this.$emit('paymentEvent', { returnCode: 'connect-application-failure', error: error })
+        })
+      }
     },
     connectSession () {
       this.$store.dispatch('authStore/fetchMyAccount').then((profile) => {
@@ -226,7 +241,7 @@ export default {
       const buffer = Buffer.from(hash.toString(CryptoJS.enc.Hex), 'hex')
       const assetHash = bufferCV(buffer)
       const data = {
-        functionName: 'create',
+        functionName: 'create-nongible',
         functionArgs: [assetHash]
       }
       let action = 'wcStacksStore/callContractBlockstack'

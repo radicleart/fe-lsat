@@ -15,10 +15,11 @@ import BigNum from 'bn.js'
 let STX_PAYMENT_ADDRESS = process.env.VUE_APP_STACKS_PAYMENT_ADDRESS
 let STX_CONTRACT_ADDRESS = process.env.VUE_APP_STACKS_CONTRACT_ADDRESS
 let STX_CONTRACT_NAME = process.env.VUE_APP_STACKS_CONTRACT_NAME
-const network = new StacksTestnet()
 
 const MESH_API = process.env.VUE_APP_API_MESH
 const STACKS_API = process.env.VUE_APP_API_STACKS
+const network = new StacksTestnet()
+network.coreApiUrl = STACKS_API
 
 const mac = JSON.parse(process.env.VUE_APP_WALLET_MAC || '')
 const precision = 1000000
@@ -162,7 +163,7 @@ const wcStacksStore = {
           senderKey: state.macsWallet.keyInfo.privateKey,
           nonce: new BigNum(nonce),
           validateWithAbi: false,
-          network: new StacksTestnet(),
+          network: network,
           appDetails: {
             name: state.appName,
             icon: state.appLogo
@@ -176,7 +177,9 @@ const wcStacksStore = {
             resolve(result)
           }
         }
-        openContractCall(txoptions)
+        openContractCall(txoptions).catch((error) => {
+          reject(error)
+        })
       })
     },
     callContractRisidio ({ state }, data) {
@@ -200,9 +203,9 @@ const wcStacksStore = {
           functionArgs: (data.functionArgs) ? data.functionArgs : [],
           fee: new BigNum(1800),
           senderKey: state.macsWallet.keyInfo.privateKey,
-          nonce: new BigNum(nonce)
-          // validateWithAbi: false,
-          // network
+          nonce: new BigNum(nonce),
+          validateWithAbi: false,
+          network
         }
         makeContractCall(txOptions).then((transaction) => {
           if (state.provider !== 'risidio') {
@@ -311,7 +314,6 @@ const wcStacksStore = {
     },
     makeTransferRisidio ({ state }, data) {
       return new Promise((resolve, reject) => {
-        network.coreApiUrl = 'http://localhost:20443'
         const paymentChallenge = store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
         let amount = Math.round(paymentChallenge.xchange.amountStx * precision)
         amount = parseInt(amount, 16)
@@ -377,9 +379,9 @@ const wcStacksStore = {
         if (configuration.addresses && configuration.addresses.stxPaymentAddress) {
           recipient = configuration.addresses.stxPaymentAddress
         }
-        // network.coreApiUrl = 'http://localhost:20443'
         openSTXTransfer({
           recipient: recipient,
+          network: network,
           amount: paymentChallenge.xchange.amountStx,
           memo: 'Payment for ' + configuration.creditAttributes.start + ' credits',
           appDetails: {
@@ -439,7 +441,6 @@ const wcStacksStore = {
     },
     deployContractRisidio ({ state, commit, dispatch }, data) {
       return new Promise((resolve, reject) => {
-        network.coreApiUrl = 'http://localhost:20443'
         const sender = state.macsWallet
         if (!data.fee) {
           data.fee = 4000
