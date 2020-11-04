@@ -41,7 +41,7 @@
 import Loading from 'vue-loading-overlay'
 import {
   uintCV
-} from '@blockstack/stacks-transactions'
+} from '@stacks/transactions'
 
 export default {
   name: 'StxContract',

@@ -1,15 +1,12 @@
 /* eslint-disable */
-import {
-  Person,
-  decodeToken,
-  UserSession
-} from 'blockstack'
-import { showBlockstackConnect, authenticate } from '@blockstack/connect'
+import { showConnect, authenticate } from '@stacks/connect';
+// import { Person, UserSession } from '@stacks/auth';
+import { Person, UserSession } from 'blockstack';
 import store from '@/store'
 import {
   getAddressFromPrivateKey,
   createStacksPrivateKey,
-} from '@blockstack/stacks-transactions'
+} from '@stacks/transactions'
 import axios from 'axios'
 
 const MESH_API = process.env.VUE_APP_API_MESH
@@ -266,7 +263,7 @@ const authStore = {
     startLogin({ }) {
       return new Promise(resolve => {
         if (BLOCKSTACK_LOGIN === 1) {
-          showBlockstackConnect(authOptions)
+          showConnect(authOptions)
         } else if (BLOCKSTACK_LOGIN === 2) {
           authenticate(authOptions)
         } else {

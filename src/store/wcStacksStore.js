@@ -1,14 +1,14 @@
 import store from '@/store'
-import { openSTXTransfer, openContractDeploy, openContractCall } from '@blockstack/connect'
 import { LSAT_CONSTANTS } from '@/lsat-constants'
 import {
-  StacksTestnet,
   makeSTXTokenTransfer,
   makeContractCall,
   callReadOnlyFunction,
   broadcastTransaction,
   makeContractDeploy
-} from '@blockstack/stacks-transactions'
+} from '@stacks/transactions'
+import { StacksTestnet } from '@stacks/network'
+import { openSTXTransfer, openContractDeploy, openContractCall } from '@stacks/connect'
 import axios from 'axios'
 import BigNum from 'bn.js'
 

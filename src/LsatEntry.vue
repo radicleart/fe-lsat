@@ -37,7 +37,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
   intCV,
   bufferCV
-} from '@blockstack/stacks-transactions'
+} from '@stacks/transactions'
 import CryptoJS from 'crypto-js'
 
 library.add(faQrcode)
@@ -225,7 +225,7 @@ export default {
           this.$emit('mintEvent', result)
           this.result = result
         }).catch((e) => {
-          this.message = e.message
+          this.message = (e.message) ? 'Error ' + e.message : 'Minting error - reason unknown'
           this.page = 'error'
           this.$emit('mintEvent', { opcode: 'eth-mint-error', message: e.message })
         })
@@ -256,9 +256,9 @@ export default {
         this.$emit('mintEvent', result)
         this.result = result
       }).catch((e) => {
-        this.message = e.message
+        this.message = (e.message) ? 'Error ' + e.message : 'Minting error - reason unknown'
         this.page = 'error'
-        this.$emit('mintEvent', { opcode: 'stx-mint-error', message: e.message })
+        this.$emit('mintEvent', { opcode: 'stx-mint-error', message: this.message })
       })
     },
     deployContract: function (configuration) {
@@ -275,7 +275,7 @@ export default {
         this.$emit('paymentEvent', result)
         this.result = result
       }).catch((e) => {
-        this.message = e.message
+        this.message = (e.message) ? 'Error ' + e.message : 'Minting error - reason unknown'
         this.page = 'error'
         this.$emit('paymentEvent', { returnCode: 'stx-deploy-error', message: e.message })
       })
