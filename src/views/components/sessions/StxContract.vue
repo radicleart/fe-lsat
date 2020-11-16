@@ -59,14 +59,23 @@ export default {
     }
   },
   mounted () {
-    this.$store.dispatch('wcStacksStore/callContractRisidioReadOnly', { functionName: 'get-base-token-uri' }).then((data) => {
+    const configuration = store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
+    const data = {
+      paymentAddress: config.addresses.stxPaymentAddress,
+      contractAddress: config.addresses.stxContractAddress,
+      contractName: config.addresses.stxContractName,
+      functionName: 'get-base-token-uri',
+      functionArgs: []
+    }
+    this.$store.dispatch('wcStacksStore/callContractRisidioReadOnly', data).then((data) => {
       this.loading = false
       this.baseTokenURI = data.result
     }).catch((e) => {
       this.loading = false
       this.resultMessage = e.message
     })
-    this.$store.dispatch('wcStacksStore/callContractRisidioReadOnly', { functionName: 'get-mint-price' }).then((data) => {
+    data.functionName = 'get-mint-price'
+    this.$store.dispatch('wcStacksStore/callContractRisidioReadOnly', data).then((data) => {
       this.loading = false
       this.mintPrice = data.result
     }).catch((e) => {

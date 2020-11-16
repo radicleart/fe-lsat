@@ -11,14 +11,11 @@
       <span class="text-warning"><a href="#" @click.prevent="onCancel">cancel</a></span>
     </div>
     <div class="mb-5 rd-text mt-3 d-flex flex-column align-items-center" v-else>
-      <div>
         <b-button href="#" class="mb-3 btn btn-dark border btn-lg text-warning" @click.prevent="sendPayment('blockstack')">Pay with Stacks</b-button>
+        <b-button href="#" class="mb-3 btn btn-dark border btn-lg text-warning" @click.prevent="sendPayment('risidio')">Claim Fee Spins</b-button>
         <div class="text-right text-white" style="font-size: 11px;">
           <a href="https://testnet-explorer.blockstack.org/sandbox" class="text-white" target="_blank">Get Testnet STX</a>
-          <br/><br/>
-          <a href="#" class="text-white" @click.prevent="sendPayment('risidio')">Free Spins</a>
         </div>
-      </div>
     </div>
     <div>
       <div class="text-danger" style="max-width: 800px;">{{errorMessage}}</div>
@@ -88,11 +85,24 @@ export default {
       this.loading = true
       this.waitingMessage = 'Processing Payment'
       this.$emit('paymentEvent', { opcode: 'stx-payment-begun1' })
+      const configuration = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
+      const data = {
+        paymentAddress: configuration.addresses.stxPaymentAddress,
+        contractAddress: configuration.addresses.stxContractAddress,
+        contractName: configuration.addresses.stxContractName,
+        functionName: 'get-base-token-uri',
+        functionArgs: []
+      }
       let action = 'wcStacksStore/makeTransferRisidio'
       if (provider === 'blockstack') {
         action = 'wcStacksStore/makeTransferBlockstack'
       }
-      this.$store.dispatch(action).then((result) => {
+      this.$store.dispatch('wcStacksStore/fetchMacsWalletInfo').then(() => {
+        this.doTransfer(action, data)
+      })
+    },
+    doTransfer (action, data) {
+      this.$store.dispatch(action, data).then((result) => {
         const data = { status: 10, opcode: 'stx-payment-confirmed', result: result.result }
         const paymentEvent = this.$store.getters[LSAT_CONSTANTS.KEY_RETURN_STATE](data)
         // this.$emit('paymentEvent', paymentEvent)
@@ -102,7 +112,7 @@ export default {
           this.$emit('paymentEvent', paymentEvent)
         })
       }).catch((e) => {
-        if (e.message.indexOf('ConflictingNonceInMempool') > -1) {
+        if (e.message && e.message.indexOf('ConflictingNonceInMempool') > -1) {
           this.$store.dispatch(action, { action: 'inc-nonce' }).then(() => {
             this.loading = false
             this.errorMessage = 'second time lucky...'

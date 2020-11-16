@@ -5,16 +5,14 @@ import {
   makeContractCall,
   callReadOnlyFunction,
   broadcastTransaction,
-  makeContractDeploy
+  makeContractDeploy,
+  bufferCV
+  // serializeCV
 } from '@stacks/transactions'
 import { StacksTestnet } from '@stacks/network'
 import { openSTXTransfer, openContractDeploy, openContractCall } from '@stacks/connect'
 import axios from 'axios'
 import BigNum from 'bn.js'
-
-let STX_PAYMENT_ADDRESS = process.env.VUE_APP_STACKS_PAYMENT_ADDRESS
-let STX_CONTRACT_ADDRESS = process.env.VUE_APP_STACKS_CONTRACT_ADDRESS
-let STX_CONTRACT_NAME = process.env.VUE_APP_STACKS_CONTRACT_NAME
 
 const MESH_API = process.env.VUE_APP_API_MESH
 const STACKS_API = process.env.VUE_APP_API_STACKS
@@ -23,28 +21,6 @@ network.coreApiUrl = STACKS_API
 
 const mac = JSON.parse(process.env.VUE_APP_WALLET_MAC || '')
 const precision = 1000000
-
-/**
-const getStacksAccount = function (appPrivateKey) {
-  const privateKey = createStacksPrivateKey(appPrivateKey)
-  const publicKey = getPublicKey(privateKey)
-  const address = addressFromPublicKeys(
-    AddressVersion.TestnetSingleSig,
-    AddressHashMode.SerializeP2PKH,
-    1,
-    [publicKey]
-  )
-  return { privateKey, address }
-}
-**/
-const setAddresses = function () {
-  const config = store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
-  if (config && config.addresses) {
-    STX_PAYMENT_ADDRESS = config.addresses.stxPaymentAddress
-    STX_CONTRACT_ADDRESS = config.addresses.stxContractAddress
-    STX_CONTRACT_NAME = config.addresses.stxContractName
-  }
-}
 
 function unwrapStrings (tuple) {
   var names = tuple.match(/0x\w+/g) || []
@@ -120,7 +96,7 @@ const wcStacksStore = {
     }
   },
   actions: {
-    fetchMacsWalletInfo ({ state, commit }, address) {
+    fetchMacsWalletInfo ({ state, commit }) {
       return new Promise((resolve, reject) => {
         const macsWallet = state.macsWallet
         const data = {
@@ -151,8 +127,8 @@ const wcStacksStore = {
       // see https://docs.blockstack.org/smart-contracts/signing-transactions
       // Blocked a frame with origin "https://loopbomb.risidio.com" from accessing a cross-origin frame.
       return new Promise((resolve, reject) => {
-        const contractAddress = (data.contractAddress) ? data.contractAddress : STX_CONTRACT_ADDRESS
-        const contractName = (data.contractName) ? data.contractName : STX_CONTRACT_NAME
+        const contractAddress = data.contractAddress
+        const contractName = data.contractName
         const nonce = new BigNum(state.macsWallet.nonce)
         const txoptions = {
           contractAddress: contractAddress,
@@ -184,21 +160,14 @@ const wcStacksStore = {
     },
     callContractRisidio ({ state }, data) {
       return new Promise((resolve, reject) => {
-        setAddresses()
-        const contractAddress = (data.contractAddress) ? data.contractAddress : STX_CONTRACT_ADDRESS
-        const contractName = (data.contractName) ? data.contractName : STX_CONTRACT_NAME
-        const profile = store.getters['authStore/getMyProfile']
-        if (!data.senderKey) {
-          data.senderKey = profile.senderKey
-        }
         let nonce = new BigNum(state.macsWallet.nonce)
         if (data && data.action === 'inc-nonce') {
           nonce = new BigNum(state.macsWallet.nonce + 1)
         }
         // 5000 000 000 000 000
         const txOptions = {
-          contractAddress: contractAddress,
-          contractName: contractName,
+          contractAddress: data.contractAddress,
+          contractName: data.contractName,
           functionName: data.functionName,
           functionArgs: (data.functionArgs) ? data.functionArgs : [],
           fee: new BigNum(1800),
@@ -227,7 +196,7 @@ const wcStacksStore = {
               }
               resolve(result)
             }).catch(() => {
-              axios.post(STACKS_API + '/v2/transactions', txdata, { headers: { 'Content-Type': 'text/plain' } }).then(response => {
+              axios.post(STACKS_API + '/v2/transactions', txdata, { headers: headers }).then(response => {
                 const result = {
                   txId: response.data,
                   network: 15,
@@ -244,18 +213,20 @@ const wcStacksStore = {
     },
     callContractRisidioReadOnly ({ state }, data) {
       return new Promise((resolve, reject) => {
-        setAddresses()
         const postData = {
           arguments: (data.functionArgs) ? data.functionArgs : [],
-          sender: STX_PAYMENT_ADDRESS
+          sender: data.paymentAddress
         }
-        const apiPath = '/v2/contracts/call-read/' + STX_CONTRACT_ADDRESS + '/' + STX_CONTRACT_NAME + '/' + data.functionName
+        const apiPath = '/v2/contracts/call-read/' + data.contractAddress + '/' + data.contractName + '/' + data.functionName
         const txoptions = {
           path: apiPath,
           httpMethod: 'POST',
           postData: postData
         }
-        axios.post(MESH_API + '/v2/accounts', txoptions).then(response => {
+        const headers = {
+          'Content-Type': 'application/json'
+        }
+        axios.post(MESH_API + '/v2/accounts', txoptions, { headers: headers }).then(response => {
           if (!response.data.okay) {
             reject(new Error('not okay'))
           } else {
@@ -284,7 +255,7 @@ const wcStacksStore = {
             }
             resolve(data)
           }).catch((error) => {
-            if (error.response) {
+            if (error.response && error.response.data && error.response.data.message) {
               if (error.response.data.message.indexOf('NotEnoughFunds') > -1) {
                 reject(new Error('Not enough funds in the macsWallet to send this - try decreasing the amount?'))
               } else {
@@ -300,8 +271,8 @@ const wcStacksStore = {
     callContractBlockstackReadOnly ({ state }, data) {
       return new Promise((resolve, reject) => {
         callReadOnlyFunction({
-          contractAddress: STX_CONTRACT_ADDRESS,
-          contractName: STX_CONTRACT_NAME,
+          contractAddress: data.contractAddress,
+          contractName: data.contractName,
           functionName: data.functionName,
           functionArgs: (data.functionArgs) ? data.functionArgs : [],
           senderAddress: state.macsWallet.keyInfo.address
@@ -309,6 +280,33 @@ const wcStacksStore = {
           resolve(result)
         }).catch((error) => {
           reject(error)
+        })
+      })
+    },
+    lookupNftTokenId ({ dispatch }, configuration) {
+      return new Promise((resolve, reject) => {
+        // const buffer = bufferCV(Buffer.from(configuration.assetHash, 'hex')) // Buffer.from(hash.toString(CryptoJS.enc.Hex), 'hex')
+        // const buffer = [`0x${serializeCV(bufferCV(configuration.assetHash))}`]
+        const bCV = bufferCV(Buffer.from(configuration.assetHash, 'hex'))
+        // const sCV = serializeCV(bCV)
+        // const buffer = '0x' + sCV
+        const config = {
+          contractId: configuration.projectId,
+          contractAddress: configuration.projectId.split('.')[0],
+          contractName: configuration.projectId.split('.')[1],
+          functionName: 'get-index',
+          functionArgs: [bCV]
+        }
+        dispatch('callContractRisidioReadOnly', config).then((data) => {
+          const result = {}
+          result.opcode = 'stx-mint-confirmed'
+          result.tokenId = data.value.value
+          result.assetHash = configuration.assetHash
+          resolve(result)
+        }).catch((e) => {
+          this.message = (e.message) ? 'Error ' + e.message : 'Minting error in nftIndex lookup - reason unknown'
+          this.page = 'error'
+          reject(new Error({ opcode: 'stx-mint-error', message: this.message }))
         })
       })
     },
@@ -321,7 +319,7 @@ const wcStacksStore = {
 
         // amount = amount.div(new BigNum(1000000))
         const senderKey = state.macsWallet.keyInfo.privateKey
-        let recipient = STX_PAYMENT_ADDRESS
+        let recipient = data.paymentAddress
         const configuration = store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
         if (configuration.addresses && configuration.addresses.stxPaymentAddress) {
           recipient = configuration.addresses.stxPaymentAddress
@@ -353,15 +351,15 @@ const wcStacksStore = {
             axios.post(useApi, txdata).then((response) => {
               resolve(response.data)
             }).catch((error) => {
-              if (error.response) {
-                if (error.response.data.message.indexOf('BadNonce') > -1) {
+              if (error.response && error.response.data) {
+                if (error.response.data.message && error.response.data.message.indexOf('BadNonce') > -1) {
                   reject(new Error('BadNonce! ' + error.response.data.message.substring(100)))
-                } else if (error.response.data.message.indexOf('NotEnoughFunds') > -1) {
+                } else if (error.response.data.message && error.response.data.message.indexOf('NotEnoughFunds') > -1) {
                   reject(new Error('Not enough funds in the macsWallet to send this - try decreasing the amount?'))
-                } else if (error.response.data.message.indexOf('ConflictingNonceInMempool') > -1) {
+                } else if (error.response.data.message && error.response.data.message.indexOf('ConflictingNonceInMempool') > -1) {
                   reject(new Error('Error: ConflictingNonceInMempool'))
                 } else {
-                  reject(error.response.data.message)
+                  reject(error.response.data)
                 }
               } else {
                 reject(error.message)
@@ -371,11 +369,11 @@ const wcStacksStore = {
         })
       })
     },
-    makeTransferBlockstack ({ state }) {
+    makeTransferBlockstack ({ state }, data) {
       return new Promise((resolve, reject) => {
         const paymentChallenge = store.getters[LSAT_CONSTANTS.KEY_PAYMENT_CHALLENGE]
         const configuration = store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
-        let recipient = STX_PAYMENT_ADDRESS
+        let recipient = data.paymentAddress
         if (configuration.addresses && configuration.addresses.stxPaymentAddress) {
           recipient = configuration.addresses.stxPaymentAddress
         }

@@ -35,10 +35,9 @@ import { library } from '@fortawesome/fontawesome-svg-core'
 import { faQrcode, faPlus, faMinus, faEquals, faCopy, faAngleDoubleUp, faAngleDoubleDown } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
-  intCV,
   bufferCV
 } from '@stacks/transactions'
-import CryptoJS from 'crypto-js'
+// import CryptoJS from 'crypto-js'
 
 library.add(faQrcode)
 library.add(faMinus)
@@ -105,7 +104,6 @@ export default {
   },
   mounted () {
     const paymentConfig = this.parseConfiguration()
-    this.$store.dispatch('wcStacksStore/fetchMacsWalletInfo')
     this.lookAndFeel = paymentConfig.lookAndFeel
     if (paymentConfig.opcode === 'mint-token') {
       this.mintToken(paymentConfig)
@@ -145,6 +143,7 @@ export default {
         this.$store.dispatch('authStore/startLogin')
       }
     },
+    /**
     connectApplication (data) {
       const bufArr = []
       for (let i = 0; i < data.functionArgs.length; i++) {
@@ -172,6 +171,7 @@ export default {
         })
       }
     },
+    **/
     connectSession () {
       this.$store.dispatch('authStore/fetchMyAccount').then((profile) => {
         this.$emit('paymentEvent', { returnCode: 'connect-login-session', profile: profile })
@@ -202,8 +202,8 @@ export default {
     },
     mintToken: function (configuration) {
       if (configuration.paymentOption === 'stacks') {
-        this.$store.dispatch('authStore/fetchMyAccount').then((profile) => {
-          this.mintTokenStacks(configuration, profile.wallet)
+        this.$store.dispatch('wcStacksStore/fetchMacsWalletInfo').then(() => {
+          this.mintTokenStacks(configuration)
         })
       } else {
         this.mintTokenEthereum(configuration)
@@ -236,13 +236,12 @@ export default {
     },
     mintTokenStacks: function (configuration) {
       this.message = 'Minting non fungible token - takes a minute or so..'
-      // const assetHash = crypto.createHash('sha256').update(this.message).digest('hex')
-      const hash = CryptoJS.SHA256(configuration.assetHash)
-      const buffer = Buffer.from(hash.toString(CryptoJS.enc.Hex), 'hex')
-      const assetHash = bufferCV(buffer)
+      const buffer = Buffer.from(configuration.assetHash, 'hex') // Buffer.from(hash.toString(CryptoJS.enc.Hex), 'hex')
       const data = {
-        functionName: 'create-nongible',
-        functionArgs: [assetHash]
+        contractAddress: configuration.addresses.stxContractAddress,
+        contractName: configuration.addresses.stxContractName,
+        functionName: configuration.addresses.stxMintFunction,
+        functionArgs: [bufferCV(buffer), bufferCV(Buffer.from(configuration.owner))]
       }
       let action = 'wcStacksStore/callContractBlockstack'
       if (configuration.provider && configuration.provider === 'risidio') {
@@ -251,10 +250,18 @@ export default {
       this.$store.dispatch(action, data).then((result) => {
         this.page = 'result'
         if (!result) result = {}
-        result.opcode = 'stx-mint-confirmed'
         result.assetHash = configuration.assetHash
-        this.$emit('mintEvent', result)
-        this.result = result
+        result.opcode = 'stx-mint-confirmed'
+        this.$store.dispatch('wcStacksStore/lookupNftTokenId', configuration).then((data) => {
+          result.tokenId = data.value.value
+          result.assetHash = configuration.assetHash
+          this.$emit('mintEvent', result)
+          this.result = result
+        }).catch((e) => {
+          // result.tokenId = -1
+          this.$emit('mintEvent', result)
+          this.result = result
+        })
       }).catch((e) => {
         this.message = (e.message) ? 'Error ' + e.message : 'Minting error - reason unknown'
         this.page = 'error'
