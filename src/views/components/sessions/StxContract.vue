@@ -42,6 +42,7 @@ import Loading from 'vue-loading-overlay'
 import {
   uintCV
 } from '@stacks/transactions'
+import { LSAT_CONSTANTS } from '@/lsat-constants'
 
 export default {
   name: 'StxContract',
@@ -59,7 +60,7 @@ export default {
     }
   },
   mounted () {
-    const configuration = store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
+    const config = this.$store.getters[LSAT_CONSTANTS.KEY_CONFIGURATION]
     const data = {
       paymentAddress: config.addresses.stxPaymentAddress,
       contractAddress: config.addresses.stxContractAddress,

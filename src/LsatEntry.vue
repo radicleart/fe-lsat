@@ -37,6 +37,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
   bufferCV
 } from '@stacks/transactions'
+import searchIndexService from '@/services/searchIndexService'
 // import CryptoJS from 'crypto-js'
 
 library.add(faQrcode)
@@ -107,6 +108,8 @@ export default {
     this.lookAndFeel = paymentConfig.lookAndFeel
     if (paymentConfig.opcode === 'mint-token') {
       this.mintToken(paymentConfig)
+    } else if (paymentConfig.opcode === 'connect-nft-index') {
+      this.lookupNftTokenId(paymentConfig)
     } else if (paymentConfig.opcode === 'connect-deploy-contract') {
       this.deployContract(paymentConfig)
     } else if (paymentConfig.opcode === 'connect-login') {
@@ -249,23 +252,57 @@ export default {
       }
       this.$store.dispatch(action, data).then((result) => {
         this.page = 'result'
-        if (!result) result = {}
-        result.assetHash = configuration.assetHash
-        result.opcode = 'stx-mint-confirmed'
-        this.$store.dispatch('wcStacksStore/lookupNftTokenId', configuration).then((data) => {
-          result.tokenId = data.value.value
-          result.assetHash = configuration.assetHash
-          this.$emit('mintEvent', result)
-          this.result = result
-        }).catch((e) => {
-          // result.tokenId = -1
-          this.$emit('mintEvent', result)
-          this.result = result
-        })
+        this.captureResult(configuration.assetHash, configuration.addresses.stxContractAddress + '.' + configuration.addresses.stxContractName)
       }).catch((e) => {
         this.message = (e.message) ? 'Error ' + e.message : 'Minting error - reason unknown'
         this.page = 'error'
         this.$emit('mintEvent', { opcode: 'stx-mint-error', message: this.message })
+      })
+    },
+    captureResult: function (assetHash, contractAddress) {
+      const $self = this
+      let counter = 0
+      const intval = setInterval(function () {
+        const result = {
+          assetHash: assetHash,
+          opcode: 'stx-mint-confirmed'
+        }
+        $self.$store.dispatch('wcStacksStore/lookupNftTokenId', { assetHash: assetHash, projectId: contractAddress }).then((data) => {
+          if (data.nftIndex && data.nftIndex >= 0) {
+            result.tokenId = data.tokenId
+            result.nftIndex = data.nftIndex
+            result.assetHash = assetHash
+            $self.$emit('mintEvent', result)
+            clearInterval(intval)
+          }
+        }).catch((e) => {
+          // try again
+        })
+        if (counter === 60) {
+          $self.$emit('mintEvent', { opcode: 'stx-mint-error-timeout' })
+          clearInterval(intval)
+        }
+        counter++
+      }, 1000)
+    },
+    lookupNftTokenId: function (configuration) {
+      searchIndexService.findAssetByHash(configuration.assetHash).then((resultSet) => {
+        if (resultSet && resultSet.length === 1) {
+          const asset = resultSet[0]
+          this.$store.dispatch('wcStacksStore/lookupNftTokenId', configuration).then((data) => {
+            data.assetHash = asset.assetHash
+            asset.tokenId = data.tokenId
+            asset.nftIndex = data.nftIndex
+            searchIndexService.addRecord(asset)
+            this.$emit('mintEvent', { data: data, opcode: 'nft-lookup-success' })
+          }).catch((e) => {
+            this.$emit('mintEvent', { opcode: 'nft-lookup-error' })
+          })
+        } else {
+          this.$emit('mintEvent', { opcode: 'nft-lookup-error' })
+        }
+      }).catch(() => {
+        this.$emit('mintEvent', { opcode: 'nft-lookup-error' })
       })
     },
     deployContract: function (configuration) {

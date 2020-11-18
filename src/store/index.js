@@ -183,14 +183,16 @@ export default new Vuex.Store({
     }
   },
   actions: {
-    initialiseApp ({ state, commit }, configuration) {
+    initialiseApp ({ state, dispatch, commit }, configuration) {
       const $self = this
       return new Promise((resolve, reject) => {
         commit('addHeaders', authHeaders(configuration))
         commit('addPaymentConfig', configuration)
-        $self.dispatch('fetchRates').then(() => {
-          commit('addPaymentChallenge', initPaymentChallenge(state.rateObject, state.configuration.creditAttributes))
-          resolve({ tokenAcquired: false, resource: state.paymentChallenge })
+        $self.dispatch('wcStacksStore/fetchMacsWalletInfo').then(() => {
+          dispatch('fetchRates').then(() => {
+            commit('addPaymentChallenge', initPaymentChallenge(state.rateObject, state.configuration.creditAttributes))
+            resolve({ tokenAcquired: false, resource: state.paymentChallenge })
+          })
         })
       })
     },

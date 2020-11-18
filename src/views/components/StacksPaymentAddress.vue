@@ -54,8 +54,6 @@ import moment from 'moment'
 import { LSAT_CONSTANTS } from '@/lsat-constants'
 import Loading from 'vue-loading-overlay'
 
-const NETWORK = process.env.VUE_APP_NETWORK
-
 // noinspection JSUnusedGlobalSymbols
 export default {
   name: 'StacksPaymentAddress',
@@ -111,16 +109,18 @@ export default {
           this.loading = false
           this.$emit('paymentEvent', paymentEvent)
         })
-      }).catch((e) => {
-        if (e.message && e.message.indexOf('ConflictingNonceInMempool') > -1) {
-          this.$store.dispatch(action, { action: 'inc-nonce' }).then(() => {
+      }).catch(() => {
+        data.action = 'inc-nonce'
+        this.$store.dispatch(action, data).then((result) => {
+          const data = { status: 10, opcode: 'stx-payment-confirmed', result: result.result }
+          const paymentEvent = this.$store.getters[LSAT_CONSTANTS.KEY_RETURN_STATE](data)
+          // this.$emit('paymentEvent', paymentEvent)
+          this.$store.dispatch('receivePayment', paymentEvent).then((result) => {
+            this.waitingMessage = 'Processed Payment'
             this.loading = false
-            this.errorMessage = 'second time lucky...'
+            this.$emit('paymentEvent', paymentEvent)
           })
-        } else {
-          this.errorMessage = e + ' on network: ' + NETWORK
-          this.loading = false
-        }
+        })
       })
     },
     onCancel () {

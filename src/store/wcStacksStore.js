@@ -1,4 +1,5 @@
 import store from '@/store'
+import utils from '@/services/utils'
 import { LSAT_CONSTANTS } from '@/lsat-constants'
 import {
   makeSTXTokenTransfer,
@@ -6,8 +7,8 @@ import {
   callReadOnlyFunction,
   broadcastTransaction,
   makeContractDeploy,
-  bufferCV
-  // serializeCV
+  bufferCV,
+  serializeCV
 } from '@stacks/transactions'
 import { StacksTestnet } from '@stacks/network'
 import { openSTXTransfer, openContractDeploy, openContractCall } from '@stacks/connect'
@@ -22,11 +23,6 @@ network.coreApiUrl = STACKS_API
 const mac = JSON.parse(process.env.VUE_APP_WALLET_MAC || '')
 const precision = 1000000
 
-function unwrapStrings (tuple) {
-  var names = tuple.match(/0x\w+/g) || []
-  const name = Buffer.from(names[0].substring(2), 'hex').toString()
-  return name
-}
 const resolveError = function (reject, error) {
   if (!error) {
     reject('Error happened')
@@ -191,16 +187,16 @@ const wcStacksStore = {
             axios.post(MESH_API + '/v2/broadcast', txdata, { headers: headers }).then(response => {
               const result = {
                 txId: response.data,
-                network: 15,
-                tokenId: Math.floor(Math.random() * Math.floor(1000000000))
+                network: 15
+                // tokenId: Math.floor(Math.random() * Math.floor(1000000000))
               }
               resolve(result)
             }).catch(() => {
               axios.post(STACKS_API + '/v2/transactions', txdata, { headers: headers }).then(response => {
                 const result = {
                   txId: response.data,
-                  network: 15,
-                  tokenId: Math.floor(Math.random() * Math.floor(1000000000))
+                  network: 15
+                  // tokenId: Math.floor(Math.random() * Math.floor(1000000000))
                 }
                 resolve(result)
               }).catch((error) => {
@@ -215,7 +211,7 @@ const wcStacksStore = {
       return new Promise((resolve, reject) => {
         const postData = {
           arguments: (data.functionArgs) ? data.functionArgs : [],
-          sender: data.paymentAddress
+          sender: state.macsWallet.keyInfo.address
         }
         const apiPath = '/v2/contracts/call-read/' + data.contractAddress + '/' + data.contractName + '/' + data.functionName
         const txoptions = {
@@ -228,31 +224,19 @@ const wcStacksStore = {
         }
         axios.post(MESH_API + '/v2/accounts', txoptions, { headers: headers }).then(response => {
           if (!response.data.okay) {
-            reject(new Error('not okay'))
-          } else {
-            data.senderKey = null
-            if (data.functionName === 'get-mint-price') {
-              const res = getAmountStx(parseInt(response.data.result, 16))
-              // const res = unwrapStrings(response.data.result) // response.data.result.substring(0)
-              data.result = res
-            } else {
-              const res = unwrapStrings(response.data.result) // response.data.result.substring(2)
-              // data.result = Buffer.from(res, 'hex').toString()
-              data.result = res
-            }
-            resolve(data)
+            reject(new Error('not okay - ' + response.data.cause))
+            return
           }
+          data.result = utils.fromHex(data.functionName, response.data.result)
+          // const res = getAmountStx(parseInt(response.data.result, 16))
+          resolve(data)
         }).catch(() => {
-          axios.post(STACKS_API + apiPath, postData).then(response => {
-            data.senderKey = null
-            if (data.functionName === 'get-mint-price') {
-              const res = getAmountStx(parseInt(response.data.result, 16))
-              // const res = unwrapStrings(response.data.result) // response.data.result.substring(0)
-              data.result = res
-            } else {
-              const res = unwrapStrings(response.data.result) // response.data.result.substring(2)
-              data.result = res
+          axios.post(STACKS_API + apiPath, postData, { headers: headers }).then(response => {
+            if (!response.data.okay) {
+              reject(new Error('not okay - ' + response.data.cause))
+              return
             }
+            data.result = utils.fromHex(data.functionName, response.data.result)
             resolve(data)
           }).catch((error) => {
             if (error.response && error.response.data && error.response.data.message) {
@@ -285,28 +269,25 @@ const wcStacksStore = {
     },
     lookupNftTokenId ({ dispatch }, configuration) {
       return new Promise((resolve, reject) => {
-        // const buffer = bufferCV(Buffer.from(configuration.assetHash, 'hex')) // Buffer.from(hash.toString(CryptoJS.enc.Hex), 'hex')
-        // const buffer = [`0x${serializeCV(bufferCV(configuration.assetHash))}`]
-        const bCV = bufferCV(Buffer.from(configuration.assetHash, 'hex'))
-        // const sCV = serializeCV(bCV)
-        // const buffer = '0x' + sCV
+        const buffer = `0x${serializeCV(bufferCV(Buffer.from(configuration.assetHash, 'hex'))).toString('hex')}` // Buffer.from(hash.toString(CryptoJS.enc.Hex), 'hex')
         const config = {
           contractId: configuration.projectId,
           contractAddress: configuration.projectId.split('.')[0],
           contractName: configuration.projectId.split('.')[1],
           functionName: 'get-index',
-          functionArgs: [bCV]
+          functionArgs: [buffer]
         }
         dispatch('callContractRisidioReadOnly', config).then((data) => {
           const result = {}
-          result.opcode = 'stx-mint-confirmed'
-          result.tokenId = data.value.value
+          result.opcode = 'nft-lookup-success'
+          result.tokenId = data.result
+          result.nftIndex = data.result
           result.assetHash = configuration.assetHash
           resolve(result)
         }).catch((e) => {
           this.message = (e.message) ? 'Error ' + e.message : 'Minting error in nftIndex lookup - reason unknown'
           this.page = 'error'
-          reject(new Error({ opcode: 'stx-mint-error', message: this.message }))
+          reject(new Error({ opcode: 'nft-lookup-error', message: this.message }))
         })
       })
     },
@@ -441,7 +422,7 @@ const wcStacksStore = {
       return new Promise((resolve, reject) => {
         const sender = state.macsWallet
         if (!data.fee) {
-          data.fee = 4000
+          data.fee = 4300
         }
         const txOptions = {
           contractName: data.contractName,
