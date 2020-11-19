@@ -286,21 +286,17 @@ export default {
       }, 1000)
     },
     lookupNftTokenId: function (configuration) {
-      searchIndexService.findAssetByHash(configuration.assetHash).then((resultSet) => {
-        if (resultSet && resultSet.length === 1) {
-          const asset = resultSet[0]
-          this.$store.dispatch('wcStacksStore/lookupNftTokenId', configuration).then((data) => {
-            data.assetHash = asset.assetHash
-            asset.tokenId = data.tokenId
-            asset.nftIndex = data.nftIndex
-            searchIndexService.addRecord(asset)
-            this.$emit('mintEvent', { data: data, opcode: 'nft-lookup-success' })
-          }).catch((e) => {
-            this.$emit('mintEvent', { opcode: 'nft-lookup-error' })
-          })
-        } else {
+      searchIndexService.findAssetByHash(configuration.assetHash).then((response) => {
+        const asset = response.data
+        this.$store.dispatch('wcStacksStore/lookupNftTokenId', configuration).then((data) => {
+          data.assetHash = asset.assetHash
+          asset.tokenId = data.tokenId
+          asset.nftIndex = data.nftIndex
+          searchIndexService.addRecord(asset)
+          this.$emit('mintEvent', { data: data, opcode: 'nft-lookup-success' })
+        }).catch((e) => {
           this.$emit('mintEvent', { opcode: 'nft-lookup-error' })
-        }
+        })
       }).catch(() => {
         this.$emit('mintEvent', { opcode: 'nft-lookup-error' })
       })
