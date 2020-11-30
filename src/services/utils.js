@@ -13,6 +13,9 @@ const utils = {
   fromHex: function (method, rawResponse) {
     const td = new TextDecoder('utf-8')
     const res = hexToCV(rawResponse)
+    if (rawResponse.startsWith('0x08')) {
+      throw new Error('Blockchain call returned not okay with error code: ' + res.value.value.toNumber())
+    }
     if (method === 'get-mint-price') {
       return res.value.value.toNumber()
     } else if (method === 'get-index') {

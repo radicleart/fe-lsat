@@ -15,10 +15,12 @@ import { openSTXTransfer, openContractDeploy, openContractCall } from '@stacks/c
 import axios from 'axios'
 import BigNum from 'bn.js'
 
+const contractDeployFee = 8000
+
 const MESH_API = process.env.VUE_APP_API_MESH
 const STACKS_API = process.env.VUE_APP_API_STACKS
 const network = new StacksTestnet()
-network.coreApiUrl = STACKS_API
+// network.coreApiUrl = STACKS_API
 
 const mac = JSON.parse(process.env.VUE_APP_WALLET_MAC || '')
 const precision = 1000000
@@ -77,7 +79,7 @@ const wcStacksStore = {
       showAdmin: false
     },
     provider: 'risidio',
-    appName: 'Risidio Mesh',
+    appName: 'Loopbomb',
     appLogo: '/img/logo/Risidio_logo_256x256.png',
     macsWallet: mac
   },
@@ -120,31 +122,22 @@ const wcStacksStore = {
       })
     },
     callContractBlockstack ({ state }, data) {
-      // see https://docs.blockstack.org/smart-contracts/signing-transactions
-      // Blocked a frame with origin "https://loopbomb.risidio.com" from accessing a cross-origin frame.
       return new Promise((resolve, reject) => {
-        const contractAddress = data.contractAddress
-        const contractName = data.contractName
-        const nonce = new BigNum(state.macsWallet.nonce)
         const txoptions = {
-          contractAddress: contractAddress,
-          contractName: contractName,
+          contractAddress: data.contractAddress,
+          contractName: data.contractName,
           functionName: data.functionName,
           functionArgs: (data.functionArgs) ? data.functionArgs : [],
-          fee: new BigNum(1800),
-          senderKey: state.macsWallet.keyInfo.privateKey,
-          nonce: new BigNum(nonce),
-          validateWithAbi: false,
-          network: network,
+          // network: network,
           appDetails: {
             name: state.appName,
             icon: state.appLogo
           },
-          finished: response => {
+          finished: (response) => {
             const result = {
-              txId: response.data,
-              network: 15,
-              tokenId: Math.floor(Math.random() * Math.floor(1000000000))
+              txId: response.txId,
+              txRaw: response.txRaw,
+              network: 15
             }
             resolve(result)
           }
@@ -280,7 +273,6 @@ const wcStacksStore = {
         dispatch('callContractRisidioReadOnly', config).then((data) => {
           const result = {}
           result.opcode = 'nft-lookup-success'
-          result.tokenId = data.result
           result.nftIndex = data.result
           result.assetHash = configuration.assetHash
           resolve(result)
@@ -360,7 +352,7 @@ const wcStacksStore = {
         }
         openSTXTransfer({
           recipient: recipient,
-          network: network,
+          // network: network,
           amount: paymentChallenge.xchange.amountStx,
           memo: 'Payment for ' + configuration.creditAttributes.start + ' credits',
           appDetails: {
@@ -422,7 +414,7 @@ const wcStacksStore = {
       return new Promise((resolve, reject) => {
         const sender = state.macsWallet
         if (!data.fee) {
-          data.fee = 4300
+          data.fee = contractDeployFee
         }
         const txOptions = {
           contractName: data.contractName,

@@ -244,7 +244,7 @@ export default {
         contractAddress: configuration.addresses.stxContractAddress,
         contractName: configuration.addresses.stxContractName,
         functionName: configuration.addresses.stxMintFunction,
-        functionArgs: [bufferCV(buffer), bufferCV(Buffer.from(configuration.owner))]
+        functionArgs: [bufferCV(buffer)] // , bufferCV(Buffer.from(configuration.owner))]
       }
       let action = 'wcStacksStore/callContractBlockstack'
       if (configuration.provider && configuration.provider === 'risidio') {
@@ -254,9 +254,15 @@ export default {
         this.page = 'result'
         this.captureResult(configuration.assetHash, configuration.addresses.stxContractAddress + '.' + configuration.addresses.stxContractName)
       }).catch((e) => {
-        this.message = (e.message) ? 'Error ' + e.message : 'Minting error - reason unknown'
-        this.page = 'error'
-        this.$emit('mintEvent', { opcode: 'stx-mint-error', message: this.message })
+        data.action = 'inc-nonce'
+        this.$store.dispatch(action, data).then((result) => {
+          this.page = 'result'
+          this.captureResult(configuration.assetHash, configuration.addresses.stxContractAddress + '.' + configuration.addresses.stxContractName)
+        }).catch((e) => {
+          this.message = (e.message) ? 'Error ' + e.message : 'Minting error - reason unknown'
+          this.page = 'error'
+          this.$emit('mintEvent', { opcode: 'stx-mint-error', message: this.message })
+        })
       })
     },
     captureResult: function (assetHash, contractAddress) {
@@ -268,7 +274,7 @@ export default {
           opcode: 'stx-mint-confirmed'
         }
         $self.$store.dispatch('wcStacksStore/lookupNftTokenId', { assetHash: assetHash, projectId: contractAddress }).then((data) => {
-          if (data.nftIndex && data.nftIndex >= 0) {
+          if (typeof data.nftIndex !== 'undefined' && (data.nftIndex === 0 || data.nftIndex >= 0)) {
             result.tokenId = data.tokenId
             result.nftIndex = data.nftIndex
             result.assetHash = assetHash
@@ -278,21 +284,21 @@ export default {
         }).catch((e) => {
           // try again
         })
-        if (counter === 60) {
+        if (counter === 48) {
           $self.$emit('mintEvent', { opcode: 'stx-mint-error-timeout' })
           clearInterval(intval)
         }
         counter++
-      }, 1000)
+      }, 10000)
     },
     lookupNftTokenId: function (configuration) {
       searchIndexService.findAssetByHash(configuration.assetHash).then((response) => {
-        const asset = response.data
         this.$store.dispatch('wcStacksStore/lookupNftTokenId', configuration).then((data) => {
-          data.assetHash = asset.assetHash
-          asset.tokenId = data.tokenId
-          asset.nftIndex = data.nftIndex
-          searchIndexService.addRecord(asset)
+          if (response.data && response.data.assetHash) {
+            const asset = response.data
+            asset.nftIndex = data.nftIndex
+            searchIndexService.addRecord(asset)
+          }
           this.$emit('mintEvent', { data: data, opcode: 'nft-lookup-success' })
         }).catch((e) => {
           this.$emit('mintEvent', { opcode: 'nft-lookup-error' })

@@ -39,6 +39,8 @@ const searchIndexService = {
   findAssetByHash: function (assetHash) {
     return new Promise(function (resolve, reject) {
       axios.get(SEARCH_API_PATH + '/v1/asset/' + assetHash).then((asset) => {
+        if (asset.nftIndex === 'null') asset.nftIndex = null
+        if (asset.tokenId === 'null') asset.tokenId = null
         resolve(asset)
       }).catch((error) => {
         reject(new Error('Unable index record: ' + error))
