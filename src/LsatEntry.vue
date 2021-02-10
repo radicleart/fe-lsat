@@ -26,31 +26,19 @@
 import Vue from 'vue'
 import store from './store'
 import Notifications from 'vue-notification'
-import BootstrapVue from 'bootstrap-vue'
+import { BootstrapVue, BootstrapVueIcons } from 'bootstrap-vue'
 import Framework from './views/Framework'
 import AdministerContract from './views/components/sessions/AdministerContract'
 import ResultPage from './views/ResultPage'
 import { LSAT_CONSTANTS } from './lsat-constants'
-import { library } from '@fortawesome/fontawesome-svg-core'
-import { faQrcode, faPlus, faMinus, faEquals, faCopy, faAngleDoubleUp, faAngleDoubleDown } from '@fortawesome/free-solid-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
   bufferCV
 } from '@stacks/transactions'
 import searchIndexService from '@/services/searchIndexService'
 // import CryptoJS from 'crypto-js'
 
-library.add(faQrcode)
-library.add(faMinus)
-library.add(faPlus)
-library.add(faEquals)
-library.add(faCopy)
-library.add(faAngleDoubleUp)
-library.add(faAngleDoubleDown)
-
-Vue.component('font-awesome-icon', FontAwesomeIcon)
-
 Vue.use(BootstrapVue)
+Vue.use(BootstrapVueIcons)
 Vue.config.productionTip = false
 Vue.use(Notifications, { closeOnClick: true, duration: 6000 })
 Vue.mixin({ store })
@@ -139,11 +127,11 @@ export default {
   },
   methods: {
     connectLogin: function () {
-      const myProfile = this.$store.getters['authStore/getMyProfile']
+      const myProfile = this.$store.getters['lsatAuthStore/getMyProfile']
       if (myProfile.loggedIn) {
         this.$emit('connect-login', myProfile)
       } else {
-        this.$store.dispatch('authStore/startLogin')
+        this.$store.dispatch('lsatAuthStore/startLogin')
       }
     },
     /**
@@ -176,13 +164,13 @@ export default {
     },
     **/
     connectSession () {
-      this.$store.dispatch('authStore/fetchMyAccount').then((profile) => {
+      this.$store.dispatch('lsatAuthStore/fetchMyAccount').then((profile) => {
         this.$emit('paymentEvent', { returnCode: 'connect-login-session', profile: profile })
         console.log(profile)
       })
     },
     connectLogout () {
-      this.$store.dispatch('authStore/startLogout').then((profile) => {
+      this.$store.dispatch('lsatAuthStore/startLogout').then((profile) => {
         localStorage.clear()
         sessionStorage.clear()
         this.$emit('paymentEvent', { returnCode: 'connect-logout-success', profile: profile })

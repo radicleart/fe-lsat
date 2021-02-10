@@ -2,34 +2,28 @@ import Vue from 'vue'
 import Vuex from 'vuex'
 import lsatHelper from './lsatHelper'
 import ethereumStore from './ethereumStore'
-import authStore from './authStore'
+import lsatAuthStore from './lsatAuthStore'
 import wcStacksStore from '@/store/wcStacksStore'
-import {
-  UserSession,
-  decodeToken
-} from 'blockstack'
+import { AppConfig, UserSession } from '@stacks/connect'
 
 Vue.use(Vuex)
 
 const precision = 100000000
-const userSession = new UserSession()
+
+const appConfig = new AppConfig(['store_write', 'publish_data'])
+const userSession = new UserSession({ appConfig })
 const authHeaders = function (configuration) {
-  var authResponseToken
-  var decodedToken
-  var publicKey
   let token = 'v1:no-token' // note: not all requests require auth token - e.g. getPaymentAddress
+  let account = null
   if (userSession.isUserSignedIn()) {
-    const account = userSession.loadUserData()
     if (account) {
-      authResponseToken = account.authResponseToken
-      decodedToken = decodeToken(authResponseToken)
-      publicKey = decodedToken.payload.public_keys[0]
+      account = userSession.loadUserData()
       token = 'v1:' + account.authResponseToken
     }
   }
   const headers = {
     ApiKey: configuration.apiKey,
-    IdentityAddress: publicKey,
+    IdentityAddress: account.identityAddress,
     'Content-Type': 'application/json',
     Authorization: 'Bearer ' + token
   }
@@ -87,7 +81,7 @@ export default new Vuex.Store({
   modules: {
     ethereumStore: ethereumStore,
     wcStacksStore: wcStacksStore,
-    authStore: authStore
+    lsatAuthStore: lsatAuthStore
   },
   state: {
     configuration: null,
