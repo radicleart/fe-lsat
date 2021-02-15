@@ -2,6 +2,7 @@ import store from '@/store'
 import { AppConfig, UserSession, showConnect, authenticate } from '@stacks/connect'
 
 const BLOCKSTACK_LOGIN = Number(process.env.VUE_APP_BLOCKSTACK_LOGIN)
+const NETWORK = process.env.VUE_APP_NETWORK
 
 const appConfig = new AppConfig(['store_write', 'publish_data'])
 const userSession = new UserSession({ appConfig })
@@ -57,7 +58,7 @@ const getProfile = function () {
       const loggedIn = true
       myProfile = {
         loggedIn: loggedIn,
-        stxAddress: account.profile.stxAddress,
+        stxAddress: (NETWORK === 'mainnet') ? account.profile.stxAddress.mainnet : account.profile.stxAddress.testnet,
         identityAddress: account.identityAddress,
         showAdmin: showAdmin,
         showSuperAdmin: uname === 'radicle_art.id.blockstack',
